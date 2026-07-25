@@ -5,20 +5,22 @@ import type { ButtonHTMLAttributes } from 'react';
 type Variante = 'primary' | 'secondary' | 'danger' | 'ghost';
 type Taille = 'sm' | 'md';
 
+/** Teal de marque en action primaire, contour neutre en secondaire (idiome Ynexis). */
 const classesVariante: Record<Variante, string> = {
   primary:
-    'bg-indigo-600 text-white hover:bg-indigo-700 focus-visible:ring-indigo-300 disabled:bg-indigo-300',
+    'bg-brand text-on-brand hover:bg-brand-hover active:bg-brand-active disabled:bg-brand-border disabled:text-white',
   secondary:
-    'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus-visible:ring-gray-200 disabled:text-gray-400',
+    'border border-line-default bg-surface-card text-ink-body hover:bg-surface-hover hover:text-ink-strong disabled:border-line-subtle disabled:text-ink-subtle',
   danger:
-    'bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-300 disabled:bg-red-300',
+    'bg-bad-solid text-white hover:bg-[var(--red-600)] active:bg-[var(--red-700)] disabled:bg-bad-bg disabled:text-bad-solid',
   ghost:
-    'text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-gray-200 disabled:text-gray-400',
+    'text-ink-muted hover:bg-surface-hover hover:text-ink-strong disabled:text-ink-subtle',
 };
 
+/** Hauteurs de contrôle du design system : 32 px (sm) et 38 px (md). */
 const classesTaille: Record<Taille, string> = {
-  sm: 'px-2.5 py-1.5 text-xs',
-  md: 'px-4 py-2 text-sm',
+  sm: 'h-[var(--control-height-sm)] gap-1.5 px-3 text-xs',
+  md: 'h-[var(--control-height-md)] gap-2 px-4 text-base',
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -36,7 +38,7 @@ export function Button({
   return (
     <button
       type={type}
-      className={`inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed ${classesVariante[variante]} ${classesTaille[taille]} ${className}`}
+      className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm font-medium transition-colors duration-[var(--duration-fast)] focus-visible:outline-none focus-visible:shadow-[var(--ring)] disabled:cursor-not-allowed ${classesVariante[variante]} ${classesTaille[taille]} ${className}`}
       {...props}
     />
   );

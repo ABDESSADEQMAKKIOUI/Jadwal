@@ -1,0 +1,9 @@
+/* ============================================================
+   Ynexis — Webfonts
+   Brand face is Inter (the real Yakeey web font). Loaded from the
+   Google Fonts CDN. Consumers who link styles.css inherit this
+   automatically. To self-host, drop Inter .woff2 files in
+   assets/fonts/ and replace this @import with @font-face rules.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap');

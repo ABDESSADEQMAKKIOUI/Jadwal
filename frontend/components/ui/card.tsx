@@ -13,11 +13,12 @@ export function Card({
 }) {
   return (
     <section
-      className={`rounded-xl border border-gray-200 bg-white shadow-sm ${className}`}
+      className={`rounded-md border border-line-subtle bg-surface-card shadow-[var(--shadow-sm)] ${className}`}
     >
       {(titre !== undefined || actions !== undefined) && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-gray-900">{titre}</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line-subtle px-5 py-4">
+          {/* Titre de carte : rôle typographique --type-card-title du design system. */}
+          <h2 className="text-lg font-semibold text-ink-strong">{titre}</h2>
           {actions}
         </div>
       )}

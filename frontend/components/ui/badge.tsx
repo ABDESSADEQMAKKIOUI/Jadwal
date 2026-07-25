@@ -8,22 +8,26 @@ const libelles: Record<string, string> = {
   REJETE: 'Rejeté',
 };
 
+/**
+ * Pastilles de statut Ynexis : paires fond/texte sémantiques
+ * (vert = abouti, ambre = en attente, rouge = rejeté, gris = inactif).
+ */
 const couleurs: Record<string, string> = {
-  ACTIF: 'bg-green-100 text-green-800',
-  CONFIRME: 'bg-green-100 text-green-800',
-  EN_ATTENTE_PAIEMENT: 'bg-amber-100 text-amber-800',
-  EN_ATTENTE: 'bg-amber-100 text-amber-800',
-  SUSPENDU: 'bg-red-100 text-red-700',
-  REJETE: 'bg-red-100 text-red-700',
-  EXPIRE: 'bg-gray-100 text-gray-600',
+  ACTIF: 'bg-ok-bg text-ok-fg',
+  CONFIRME: 'bg-ok-bg text-ok-fg',
+  EN_ATTENTE_PAIEMENT: 'bg-warn-bg text-warn-fg',
+  EN_ATTENTE: 'bg-warn-bg text-warn-fg',
+  SUSPENDU: 'bg-bad-bg text-bad-fg',
+  REJETE: 'bg-bad-bg text-bad-fg',
+  EXPIRE: 'bg-idle-bg text-idle-fg',
 };
 
 export function Badge({ statut }: { statut: string }) {
-  const couleur = couleurs[statut] ?? 'bg-gray-100 text-gray-600';
+  const couleur = couleurs[statut] ?? 'bg-idle-bg text-idle-fg';
   const libelle = libelles[statut] ?? statut;
   return (
     <span
-      className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${couleur}`}
+      className={`inline-flex items-center whitespace-nowrap rounded-[var(--radius-pill)] px-2.5 py-0.5 text-xs font-medium ${couleur}`}
     >
       {libelle}
     </span>

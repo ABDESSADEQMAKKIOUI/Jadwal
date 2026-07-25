@@ -139,12 +139,12 @@ export default function PageDetailEtablissement() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-semibold text-gray-900">
+            <h1 className="text-xl font-semibold text-neutral-900">
               {etablissement.nom}
             </h1>
             <Badge statut={etablissement.statut} />
           </div>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-neutral-500">
             Code {etablissement.code} — {etablissement.ville}
           </p>
         </div>
@@ -172,32 +172,32 @@ export default function PageDetailEtablissement() {
       <Card titre="Informations">
         <dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
           <div>
-            <dt className="text-gray-500">Ville</dt>
-            <dd className="mt-1 font-medium text-gray-900">
+            <dt className="text-neutral-500">Ville</dt>
+            <dd className="mt-1 font-medium text-neutral-900">
               {etablissement.ville}
             </dd>
           </div>
           <div>
-            <dt className="text-gray-500">Téléphone</dt>
-            <dd className="mt-1 font-medium text-gray-900">
+            <dt className="text-neutral-500">Téléphone</dt>
+            <dd className="mt-1 font-medium text-neutral-900">
               {etablissement.telephone}
             </dd>
           </div>
           <div>
-            <dt className="text-gray-500">E-mail</dt>
-            <dd className="mt-1 font-medium text-gray-900">
+            <dt className="text-neutral-500">E-mail</dt>
+            <dd className="mt-1 font-medium text-neutral-900">
               {etablissement.email}
             </dd>
           </div>
           <div>
-            <dt className="text-gray-500">Code</dt>
-            <dd className="mt-1 font-medium text-gray-900">
+            <dt className="text-neutral-500">Code</dt>
+            <dd className="mt-1 font-medium text-neutral-900">
               {etablissement.code}
             </dd>
           </div>
           <div>
-            <dt className="text-gray-500">Créé le</dt>
-            <dd className="mt-1 font-medium text-gray-900">
+            <dt className="text-neutral-500">Créé le</dt>
+            <dd className="mt-1 font-medium text-neutral-900">
               {formatDate(etablissement.dateCreation)}
             </dd>
           </div>
@@ -235,7 +235,7 @@ export default function PageDetailEtablissement() {
             <TBody>
               {etablissement.comptes.map((compte) => (
                 <Tr key={compte.id}>
-                  <Td className="font-medium text-gray-900">
+                  <Td className="font-medium text-neutral-900">
                     {compte.nomComplet}
                   </Td>
                   <Td>{compte.email}</Td>
@@ -286,7 +286,7 @@ export default function PageDetailEtablissement() {
             <TBody>
               {etablissement.abonnements.map((abonnement) => (
                 <Tr key={abonnement.id}>
-                  <Td className="font-medium text-gray-900">
+                  <Td className="font-medium text-neutral-900">
                     {abonnement.planNom}
                   </Td>
                   <Td>{formatMontant(abonnement.prixAnnuel)}</Td>
@@ -325,7 +325,7 @@ export default function PageDetailEtablissement() {
                 <Tr key={paiement.id}>
                   <Td>{formatDate(paiement.datePaiement)}</Td>
                   <Td>{paiement.planNom}</Td>
-                  <Td className="font-medium text-gray-900">
+                  <Td className="font-medium text-neutral-900">
                     {formatMontant(paiement.montant)}
                   </Td>
                   <Td>{libelleMode(paiement.mode)}</Td>

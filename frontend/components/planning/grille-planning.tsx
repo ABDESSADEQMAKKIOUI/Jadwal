@@ -138,7 +138,7 @@ function CelluleCreneau({
         zIndex: 1,
       }}
       className={`rounded transition-colors ${
-        isOver ? 'bg-indigo-100/80 ring-2 ring-inset ring-indigo-400' : ''
+        isOver ? 'bg-teal-100/80 ring-2 ring-inset ring-teal-400' : ''
       }`}
     />
   );
@@ -197,7 +197,7 @@ export function GrillePlanning({
       collisionDetection={pointerWithin}
       onDragEnd={gererFinGlisser}
     >
-      <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div className="overflow-x-auto rounded-xl border border-neutral-200 bg-white shadow-sm">
         <div
           style={{
             display: 'grid',
@@ -209,13 +209,13 @@ export function GrillePlanning({
           {/* En-tête : coin + jours */}
           <div
             style={{ gridColumn: 1, gridRow: 1 }}
-            className="border-b border-r border-gray-200 bg-gray-50"
+            className="border-b border-r border-neutral-200 bg-neutral-50"
           />
           {jours.map((jour, i) => (
             <div
               key={jour}
               style={{ gridColumn: i + 2, gridRow: 1 }}
-              className="flex items-center justify-center border-b border-r border-gray-200 bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-600"
+              className="flex items-center justify-center border-b border-r border-neutral-200 bg-neutral-50 text-xs font-semibold uppercase tracking-wide text-neutral-600"
             >
               {LIBELLES_JOURS[jour]}
             </div>
@@ -226,7 +226,7 @@ export function GrillePlanning({
             <div
               key={`heure-${index}`}
               style={{ gridColumn: 1, gridRow: index + 2 }}
-              className="flex items-start justify-end border-b border-r border-gray-200 bg-gray-50 px-2 pt-0.5 text-[10px] font-medium text-gray-500"
+              className="flex items-start justify-end border-b border-r border-neutral-200 bg-neutral-50 px-2 pt-0.5 text-[10px] font-medium text-neutral-500"
             >
               {formatHeure(grille.heureDebut, index, grille.dureeUniteMinutes)}
             </div>
@@ -238,7 +238,7 @@ export function GrillePlanning({
               <div
                 key={`fond-${jour}-${index}`}
                 style={{ gridColumn: i + 2, gridRow: index + 2, zIndex: 0 }}
-                className="border-b border-r border-gray-100"
+                className="border-b border-r border-neutral-100"
               />
             )),
           )}
@@ -254,7 +254,7 @@ export function GrillePlanning({
                   gridRow: `${plage.indexDebut + 2} / span ${plage.dureeUnites}`,
                   zIndex: 1,
                 }}
-                className="flex items-center justify-center border-b border-r border-gray-200 text-[10px] font-medium uppercase tracking-wide text-gray-500"
+                className="flex items-center justify-center border-b border-r border-neutral-200 text-[10px] font-medium uppercase tracking-wide text-neutral-500"
               >
                 {LIBELLES_BLOCAGES[plage.type] ?? plage.type}
               </div>
@@ -276,7 +276,7 @@ export function GrillePlanning({
                   gridRow: `${creneau.indexDebut + 2} / span ${Math.max(1, creneau.unitesDisponibles)}`,
                   zIndex: 1,
                 }}
-                className="border-b border-r border-gray-200"
+                className="border-b border-r border-neutral-200"
               />
             ))}
 

@@ -42,17 +42,17 @@ const LIBELLES_STATUT: Record<StatutGeneration, string> = {
 };
 
 const COULEURS_STATUT: Record<StatutGeneration, string> = {
-  EN_COURS: 'bg-indigo-100 text-indigo-800',
+  EN_COURS: 'bg-teal-100 text-teal-800',
   TERMINEE: 'bg-green-100 text-green-800',
   INFAISABLE: 'bg-red-100 text-red-700',
   ECHEC: 'bg-red-100 text-red-700',
-  ARRETEE: 'bg-gray-100 text-gray-600',
+  ARRETEE: 'bg-neutral-100 text-neutral-600',
 };
 
 function BadgeGeneration({ statut }: { statut: StatutGeneration }) {
   return (
     <span
-      className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${COULEURS_STATUT[statut] ?? 'bg-gray-100 text-gray-600'}`}
+      className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${COULEURS_STATUT[statut] ?? 'bg-neutral-100 text-neutral-600'}`}
     >
       {LIBELLES_STATUT[statut] ?? statut}
     </span>
@@ -261,8 +261,8 @@ export default function PageGeneration() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">Génération</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-xl font-semibold text-neutral-900">Génération</h1>
+        <p className="mt-1 text-sm text-neutral-500">
           Vérifiez la faisabilité puis lancez la génération automatique de
           l’emploi du temps.
         </p>
@@ -313,21 +313,21 @@ export default function PageGeneration() {
                 {rapport.bilans.map((bilan) => (
                   <li
                     key={bilan.code}
-                    className="flex items-start gap-3 rounded-lg border border-gray-100 px-3 py-2"
+                    className="flex items-start gap-3 rounded-lg border border-neutral-100 px-3 py-2"
                   >
                     <PastilleFaisabilite statut={bilan.statut} />
                     <div className="min-w-0">
-                      <p className="text-sm text-gray-900">
-                        <span className="mr-2 font-mono text-xs font-semibold text-gray-500">
+                      <p className="text-sm text-neutral-900">
+                        <span className="mr-2 font-mono text-xs font-semibold text-neutral-500">
                           {bilan.code}
                         </span>
                         {bilan.libelle}
                       </p>
-                      <p className="mt-0.5 text-sm font-medium text-gray-700">
+                      <p className="mt-0.5 text-sm font-medium text-neutral-700">
                         {bilan.message}
                       </p>
                       {bilan.details !== null && bilan.details.length > 0 && (
-                        <p className="mt-0.5 text-xs text-gray-500">
+                        <p className="mt-0.5 text-xs text-neutral-500">
                           {bilan.details}
                         </p>
                       )}
@@ -388,10 +388,10 @@ export default function PageGeneration() {
                 <div className="flex items-center gap-3">
                   <Spinner />
                   <div>
-                    <p className="text-sm font-semibold text-gray-900">
+                    <p className="text-sm font-semibold text-neutral-900">
                       Génération en cours…
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-neutral-500">
                       Temps écoulé :{' '}
                       {progression?.tempsEcouleSecondes !== null &&
                       progression?.tempsEcouleSecondes !== undefined
@@ -401,15 +401,15 @@ export default function PageGeneration() {
                     </p>
                   </div>
                 </div>
-                <dl className="grid grid-cols-2 gap-3 rounded-lg bg-gray-50 p-4 text-sm">
+                <dl className="grid grid-cols-2 gap-3 rounded-lg bg-neutral-50 p-4 text-sm">
                   <div>
-                    <dt className="text-gray-500">Score</dt>
-                    <dd className="mt-0.5 font-mono font-medium text-gray-900">
+                    <dt className="text-neutral-500">Score</dt>
+                    <dd className="mt-0.5 font-mono font-medium text-neutral-900">
                       {progression?.score ?? '—'}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-gray-500">Conflits durs</dt>
+                    <dt className="text-neutral-500">Conflits durs</dt>
                     <dd
                       className={`mt-0.5 font-medium ${
                         nbDurs !== null && nbDurs > 0
@@ -437,7 +437,7 @@ export default function PageGeneration() {
                   resultatFinal.statut === 'TERMINEE'
                     ? 'border border-green-200 bg-green-50 text-green-800'
                     : resultatFinal.statut === 'ARRETEE'
-                      ? 'border border-gray-200 bg-gray-50 text-gray-700'
+                      ? 'border border-neutral-200 bg-neutral-50 text-neutral-700'
                       : 'border border-red-200 bg-red-50 text-red-700'
                 }`}
               >
@@ -490,13 +490,13 @@ export default function PageGeneration() {
           </Card>
 
           <Card titre="Pondérations">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-neutral-600">
               Ajustez l’importance des règles souples (rythme, équilibrage,
               préférences) prises en compte par le moteur.
             </p>
             <Link
               href="/ecole/ponderations"
-              className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-800"
+              className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-teal-600 hover:text-teal-800"
             >
               Régler les pondérations
               <svg
@@ -580,9 +580,9 @@ export default function PageGeneration() {
           <EmptyState message="Analyse indisponible." />
         ) : (
           <div className="space-y-4">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-neutral-600">
               Score global :{' '}
-              <span className="font-mono font-medium text-gray-900">
+              <span className="font-mono font-medium text-neutral-900">
                 {requeteAnalyse.data.score ?? '—'}
               </span>
             </p>

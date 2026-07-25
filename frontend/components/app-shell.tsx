@@ -9,6 +9,16 @@ export interface ElementNavigation {
   libelle: string;
 }
 
+/** Deux initiales au plus, pour la pastille d'identité du pied de barre. */
+function initiales(nom: string): string {
+  const lettres = nom
+    .trim()
+    .split(/\s+/)
+    .map((mot) => mot[0])
+    .filter((c): c is string => Boolean(c) && /\p{L}/u.test(c));
+  return lettres.slice(0, 2).join('').toUpperCase() || 'JD';
+}
+
 export default function AppShell({
   navigation,
   nomUtilisateur,
@@ -38,43 +48,67 @@ export default function AppShell({
 
   return (
     <div className="min-h-screen">
-      <aside className="fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-slate-900">
-        <div className="flex h-16 items-center border-b border-slate-800 px-5">
-          <Link href="/">
-            <img src="/jadwal.svg" alt="JADWAL" className="h-9 w-auto" />
+      {/* Chrome sombre : --surface-inverse, largeur --sidebar-width (248 px). */}
+      <aside
+        className="fixed inset-y-0 left-0 flex w-sidebar flex-col bg-surface-inverse"
+        style={{ zIndex: 'var(--z-sidebar)' }}
+      >
+        <div className="flex h-[var(--topbar-height)] items-center border-b border-white/10 px-5">
+          <Link href="/" className="inline-flex items-center gap-2.5">
+            <img src="/jadwal.svg" alt="JADWAL" className="h-8 w-auto" />
           </Link>
         </div>
-        <nav className="flex-1 space-y-1 px-3 py-4">
-          {navigation.map((element) => (
-            <Link
-              key={element.href}
-              href={element.href}
-              className={`block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                estActif(element.href)
-                  ? 'bg-slate-800 text-white underline decoration-indigo-400 decoration-2 underline-offset-4'
-                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              {element.libelle}
-            </Link>
-          ))}
+        <nav className="flex-1 space-y-0.5 px-3 py-4">
+          {navigation.map((element) => {
+            const actif = estActif(element.href);
+            return (
+              <Link
+                key={element.href}
+                href={element.href}
+                aria-current={actif ? 'page' : undefined}
+                className={`relative block rounded-sm px-3 py-2 text-base font-medium transition-colors duration-[var(--duration-fast)] ${
+                  actif
+                    ? 'bg-white/10 text-ink-on-dark'
+                    : 'text-white/70 hover:bg-white/5 hover:text-ink-on-dark'
+                }`}
+              >
+                {/* Repère teal de l'élément actif, à la place du soulignement. */}
+                {actif && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute inset-y-1.5 left-0 w-0.5 rounded-[var(--radius-pill)] bg-brand"
+                  />
+                )}
+                {element.libelle}
+              </Link>
+            );
+          })}
         </nav>
-        <div className="border-t border-slate-800 px-5 py-4">
-          <p className="truncate text-sm font-medium text-white" title={nomUtilisateur}>
-            {nomUtilisateur}
-          </p>
+        <div className="border-t border-white/10 px-5 py-4">
+          <div className="flex items-center gap-2.5">
+            {/* Pastille d'initiales : composant Avatar du design system. */}
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-pill)] bg-brand text-xs font-semibold text-on-brand">
+              {initiales(nomUtilisateur)}
+            </span>
+            <p
+              className="truncate text-base font-medium text-ink-on-dark"
+              title={nomUtilisateur}
+            >
+              {nomUtilisateur}
+            </p>
+          </div>
           <button
             type="button"
             onClick={() => {
               void seDeconnecter();
             }}
-            className="mt-2 text-sm text-slate-400 transition-colors hover:text-white"
+            className="mt-3 rounded-sm text-sm text-white/60 transition-colors hover:text-ink-on-dark focus-visible:outline-none focus-visible:shadow-[var(--ring)]"
           >
             Se déconnecter
           </button>
         </div>
       </aside>
-      <main className="ml-64 min-h-screen p-8">{children}</main>
+      <main className="ml-sidebar min-h-screen p-8">{children}</main>
     </div>
   );
 }

@@ -250,7 +250,7 @@ export default function PagePlanning() {
   if (requeteGrille.error !== null || requeteGrille.data === undefined) {
     return (
       <div className="space-y-4">
-        <h1 className="text-xl font-semibold text-gray-900">Planning</h1>
+        <h1 className="text-xl font-semibold text-neutral-900">Planning</h1>
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           Grille horaire indisponible. Configurez d’abord la grille horaire de
           l’établissement dans le Référentiel.
@@ -267,8 +267,8 @@ export default function PagePlanning() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">Planning</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-xl font-semibold text-neutral-900">Planning</h1>
+        <p className="mt-1 text-sm text-neutral-500">
           Consultation et ajustement manuel des emplois du temps. Glissez une
           séance vers un autre créneau pour la déplacer.
         </p>
@@ -352,8 +352,8 @@ export default function PagePlanning() {
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
-          <span className="text-sm text-slate-500">Export PDF :</span>
+        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-4">
+          <span className="text-sm text-neutral-500">Export PDF :</span>
           <Button
             variante="secondary"
             taille="sm"
@@ -470,10 +470,10 @@ export default function PagePlanning() {
               {versions.map((version) => (
                 <li
                   key={version.id}
-                  className="rounded-lg border border-gray-200 p-3"
+                  className="rounded-lg border border-neutral-200 p-3"
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-neutral-900">
                       {version.libelle}
                     </p>
                     {version.active && (
@@ -482,7 +482,7 @@ export default function PagePlanning() {
                       </span>
                     )}
                   </div>
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs text-neutral-500">
                     Créée le {formatDate(version.creeeLe)} ·{' '}
                     {version.nbSeances} séances
                   </p>
@@ -511,7 +511,7 @@ export default function PagePlanning() {
       >
         {seancePourSalle !== null && (
           <div className="space-y-4">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-neutral-600">
               Séance {seancePourSalle.matiereLibelle} —{' '}
               {seancePourSalle.groupeLibelle}
             </p>
@@ -569,7 +569,7 @@ export default function PagePlanning() {
       >
         {seancePourEnseignant !== null && (
           <div className="space-y-4">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-neutral-600">
               Séance {seancePourEnseignant.matiereLibelle} —{' '}
               {seancePourEnseignant.groupeLibelle}
             </p>
@@ -627,7 +627,7 @@ export default function PagePlanning() {
       >
         {versionARestaurer !== null && (
           <div className="space-y-4">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-neutral-600">
               Restaurer la version «&nbsp;{versionARestaurer.libelle}&nbsp;» ?
               Elle deviendra la version active de l’emploi du temps pour tout
               l’établissement.

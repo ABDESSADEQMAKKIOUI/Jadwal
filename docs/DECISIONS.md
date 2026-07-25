@@ -72,5 +72,15 @@ Journal des décisions structurantes. Chaque entrée : contexte, décision, cons
 - À défaut de logo téléversé, un **monogramme** (initiales de l'établissement) tient la place du logo.
 - Le téléchargement passe par une **route Next dédiée** (`/api/exports/plannings`) : le proxy générique `/api/backend/[...path]` réencode les réponses en JSON et ne peut pas relayer un binaire.
 
+## D-017 — Adoption du design system Ynexis
+**Contexte.** JADWAL était habillé d'un thème indigo ad hoc. Ynexis dispose déjà d'un design system (celui du tableau de bord *Ynexis AI Call Center*, marque Yakeey) et une maquette « JADWAL Ynexis » a été produite dans claude.ai/design pour porter JADWAL sur cette identité.
+**Décision.** Les fichiers de tokens du design system sont copiés **verbatim** dans `frontend/app/tokens/` (source unique des valeurs) et **liés au thème Tailwind** via `@theme` dans `globals.css`. Les utilitaires (`bg-surface-card`, `text-ink-muted`, `border-line-subtle`, `bg-brand`…) rendent donc exactement les valeurs Ynexis : teal `#47a398`, Inter, neutres froids, contrôles de 38 px, rayons 6/8/12 px.
+**Pourquoi le pont Tailwind plutôt que l'idiome natif du DS.** Le design system s'utilise nativement en styles inline `var(--token)` (aucune classe CSS). Recopier cet idiome dans une application Next.js/Tailwind aurait été verbeux et non idiomatique ; recopier les valeurs en dur aurait créé deux sources de vérité. Le pont `@theme` garde une seule source (les fichiers de tokens) tout en conservant l'écriture Tailwind.
+**Conséquences.**
+- Le bundle `_ds_bundle.js` du design system **n'est pas consommé** : c'est un IIFE destiné au runtime de claude.ai/design (`window.YnexisDesignSystem_f04fb4.*`), pas un paquet npm. Les composants de `components/ui/` sont restylés d'après les tokens ; leurs **API publiques sont inchangées** (aucun écran modifié structurellement).
+- Les palettes Tailwind par défaut sont remplacées : `gray-*`/`slate-*` → `neutral-*` Ynexis, `indigo-*` → `teal-*`, et les familles `red/green/amber/blue` sont rabattues sur les paliers Ynexis (le DS n'en définit que 50/100/500/600/700).
+- Couleurs de matières du jeu de démonstration réalignées sur une palette catégorielle mate. Ce sont des **données** (`matiere.couleur`), pas des tokens : chaque établissement reste libre de les changer.
+- Conventions et vocabulaire : [DESIGN-SYSTEM.md](DESIGN-SYSTEM.md). Les échelles typographiques et de rayons y sont dupliquées en valeurs littérales dans `@theme` (Tailwind refuse une auto-référence `var()`) — à garder en phase lors d'une mise à jour du DS.
+
 ## D-011 — Identifiants de contraintes = codes du cahier
 **Décision.** Chaque contrainte Timefold est nommée par le code exact de sa règle (`asConstraint("B-01")`). Les pondérations par établissement (`I-01`, table `ponderation`) et l'analyse de score (`I-06`, écran d'analyse) sont ainsi directement traçables vers `docs/REGLES.md`.

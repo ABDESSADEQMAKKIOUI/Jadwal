@@ -29,7 +29,7 @@ const FORM_INITIAL = {
 function BadgeTypeEnseignant({ type }: { type: TypeEnseignant }) {
   const classes =
     type === 'MIXTE'
-      ? 'bg-indigo-100 text-indigo-800'
+      ? 'bg-teal-100 text-teal-800'
       : 'bg-purple-100 text-purple-800';
   return (
     <span
@@ -123,8 +123,8 @@ export default function PageEnseignants() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Enseignants</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-xl font-semibold text-neutral-900">Enseignants</h1>
+          <p className="mt-1 text-sm text-neutral-500">
             Corps enseignant, quotas horaires, habilitations et
             indisponibilités.
           </p>
@@ -169,28 +169,28 @@ export default function PageEnseignants() {
                     <Td>
                       <Link
                         href={`/ecole/enseignants/${enseignant.id}`}
-                        className="font-medium text-indigo-700 hover:text-indigo-900 hover:underline"
+                        className="font-medium text-teal-700 hover:text-teal-900 hover:underline"
                       >
                         {enseignant.nomComplet}
                       </Link>
-                      <p className="text-xs text-gray-500">{enseignant.email}</p>
+                      <p className="text-xs text-neutral-500">{enseignant.email}</p>
                     </Td>
                     <Td>
                       <BadgeTypeEnseignant type={enseignant.type} />
                     </Td>
-                    <Td className="font-medium text-gray-900">
+                    <Td className="font-medium text-neutral-900">
                       {formatUnites(enseignant.quotaHebdoUnites)}
                     </Td>
                     <Td>{enseignant.vacataire ? 'Oui' : '—'}</Td>
                     <Td>
                       {(enseignant.matieres ?? []).length === 0 ? (
-                        <span className="text-gray-400">—</span>
+                        <span className="text-neutral-400">—</span>
                       ) : (
                         <span className="flex flex-wrap gap-1">
                           {enseignant.matieres.map((matiere) => (
                             <span
                               key={matiere}
-                              className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600"
+                              className="inline-flex items-center rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-600"
                             >
                               {matiere}
                             </span>
@@ -200,7 +200,7 @@ export default function PageEnseignants() {
                     </Td>
                     <Td>
                       {formatUnites(enseignant.chargeAffectee)}{' '}
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-neutral-500">
                         / {formatUnites(enseignant.quotaHebdoUnites)}
                       </span>
                     </Td>
@@ -208,7 +208,7 @@ export default function PageEnseignants() {
                       <div className="flex justify-end gap-2">
                         <Link
                           href={`/ecole/enseignants/${enseignant.id}`}
-                          className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                          className="inline-flex items-center justify-center rounded-lg border border-neutral-300 bg-white px-2.5 py-1.5 text-xs font-medium text-neutral-700 transition-colors hover:bg-neutral-50"
                         >
                           Détail
                         </Link>
@@ -312,7 +312,7 @@ export default function PageEnseignants() {
                 }
                 required
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-neutral-500">
                 Soit {formatUnites(Number(formulaire.quotaHebdoUnites) || 0)}{' '}
                 par semaine.
               </p>
@@ -334,7 +334,7 @@ export default function PageEnseignants() {
                 }
                 required
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-neutral-500">
                 {formatUnites(Number(formulaire.maxConsecutifUnites) || 0)}{' '}
                 d’affilée maximum.
               </p>
@@ -354,21 +354,21 @@ export default function PageEnseignants() {
                 }
                 required
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-neutral-500">
                 {formatUnites(Number(formulaire.amplitudeMaxUnites) || 0)} par
                 jour maximum.
               </p>
             </div>
           </div>
           <div className="grid grid-cols-2 items-end gap-4">
-            <label className="flex items-center gap-2 pb-2 text-sm text-gray-700">
+            <label className="flex items-center gap-2 pb-2 text-sm text-neutral-700">
               <input
                 type="checkbox"
                 checked={formulaire.vacataire}
                 onChange={(e) =>
                   setFormulaire({ ...formulaire, vacataire: e.target.checked })
                 }
-                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                className="h-4 w-4 rounded border-neutral-300 text-teal-600 focus:ring-teal-500"
               />
               Vacataire (intervient dans plusieurs établissements)
             </label>
@@ -387,7 +387,7 @@ export default function PageEnseignants() {
                 }
                 required
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-neutral-500">
                 Temps de trajet réservé pour les vacataires.
               </p>
             </div>

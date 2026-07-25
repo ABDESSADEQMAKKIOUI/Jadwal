@@ -37,8 +37,8 @@ export default function PageTableauDeBordEcole() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">Tableau de bord</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-xl font-semibold text-neutral-900">Tableau de bord</h1>
+        <p className="mt-1 text-sm text-neutral-500">
           Bienvenue sur l’espace de votre établissement.
         </p>
       </div>
@@ -47,10 +47,10 @@ export default function PageTableauDeBordEcole() {
         <Card titre="Mon établissement">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-base font-semibold text-gray-900">
+              <p className="text-base font-semibold text-neutral-900">
                 {etablissement.nom}
               </p>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-neutral-500">
                 Code {etablissement.code}
               </p>
             </div>
@@ -58,20 +58,20 @@ export default function PageTableauDeBordEcole() {
           </div>
           <dl className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
             <div>
-              <dt className="text-gray-500">Ville</dt>
-              <dd className="mt-0.5 font-medium text-gray-900">
+              <dt className="text-neutral-500">Ville</dt>
+              <dd className="mt-0.5 font-medium text-neutral-900">
                 {etablissement.ville}
               </dd>
             </div>
             <div>
-              <dt className="text-gray-500">Téléphone</dt>
-              <dd className="mt-0.5 font-medium text-gray-900">
+              <dt className="text-neutral-500">Téléphone</dt>
+              <dd className="mt-0.5 font-medium text-neutral-900">
                 {etablissement.telephone}
               </dd>
             </div>
             <div className="sm:col-span-2">
-              <dt className="text-gray-500">E-mail</dt>
-              <dd className="mt-0.5 font-medium text-gray-900">
+              <dt className="text-neutral-500">E-mail</dt>
+              <dd className="mt-0.5 font-medium text-neutral-900">
                 {etablissement.email}
               </dd>
             </div>
@@ -80,8 +80,8 @@ export default function PageTableauDeBordEcole() {
 
         <Card titre="Mon abonnement">
           {abonnement === null ? (
-            <div className="py-4 text-sm text-gray-600">
-              <p className="font-medium text-gray-900">
+            <div className="py-4 text-sm text-neutral-600">
+              <p className="font-medium text-neutral-900">
                 Aucun abonnement pour le moment.
               </p>
               <p className="mt-2">
@@ -93,10 +93,10 @@ export default function PageTableauDeBordEcole() {
             <div className="space-y-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-base font-semibold text-gray-900">
+                  <p className="text-base font-semibold text-neutral-900">
                     {abonnement.planNom}
                   </p>
-                  <p className="mt-1 text-sm text-gray-500">
+                  <p className="mt-1 text-sm text-neutral-500">
                     Du {formatDate(abonnement.dateDebut)} au{' '}
                     {formatDate(abonnement.dateFin)}
                   </p>
@@ -105,25 +105,25 @@ export default function PageTableauDeBordEcole() {
               </div>
               <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
                 <div>
-                  <dt className="text-gray-500">Prix annuel</dt>
-                  <dd className="mt-0.5 font-medium text-gray-900">
+                  <dt className="text-neutral-500">Prix annuel</dt>
+                  <dd className="mt-0.5 font-medium text-neutral-900">
                     {formatMontant(abonnement.prixAnnuel)}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-gray-500">Total payé</dt>
+                  <dt className="text-neutral-500">Total payé</dt>
                   <dd className="mt-0.5 font-medium text-green-700">
                     {formatMontant(abonnement.totalPaye)}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-gray-500">Reste à payer</dt>
-                  <dd className="mt-0.5 font-medium text-gray-900">
+                  <dt className="text-neutral-500">Reste à payer</dt>
+                  <dd className="mt-0.5 font-medium text-neutral-900">
                     {formatMontant(abonnement.resteAPayer)}
                   </dd>
                 </div>
               </dl>
-              <div className="rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-900">
+              <div className="rounded-lg border border-teal-100 bg-teal-50 px-4 py-3 text-sm text-teal-900">
                 Paiement par virement bancaire, chèque ou espèces auprès de
                 l’administration JADWAL. Aucun paiement en ligne.
               </div>
@@ -152,7 +152,7 @@ export default function PageTableauDeBordEcole() {
                 <Tr key={paiement.id}>
                   <Td>{formatDate(paiement.datePaiement)}</Td>
                   <Td>{paiement.planNom}</Td>
-                  <Td className="font-medium text-gray-900">
+                  <Td className="font-medium text-neutral-900">
                     {formatMontant(paiement.montant)}
                   </Td>
                   <Td>{libelleMode(paiement.mode)}</Td>

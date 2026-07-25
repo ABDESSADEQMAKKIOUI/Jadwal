@@ -91,21 +91,21 @@ export default function PagePonderations() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Pondérations</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-xl font-semibold text-neutral-900">Pondérations</h1>
+          <p className="mt-1 text-sm text-neutral-500">
             Réglez l’importance de chaque règle souple pour le moteur de
             génération.
           </p>
         </div>
         <Link
           href="/ecole/generation"
-          className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+          className="text-sm font-medium text-teal-600 hover:text-teal-800"
         >
           ← Retour à la génération
         </Link>
       </div>
 
-      <p className="rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-900">
+      <p className="rounded-lg border border-teal-100 bg-teal-50 px-4 py-3 text-sm text-teal-900">
         Les règles dures (conflits d’enseignants, de salles, de groupes…) ne
         sont pas paramétrables : elles sont toujours strictement respectées.
       </p>
@@ -116,7 +116,7 @@ export default function PagePonderations() {
         <>
           {familles.map((famille) => (
             <Card key={famille} titre={libelleFamille(famille)}>
-              <ul className="divide-y divide-gray-100">
+              <ul className="divide-y divide-neutral-100">
                 {ponderations
                   .filter((ponderation) => ponderation.famille === famille)
                   .map((ponderation) => {
@@ -128,8 +128,8 @@ export default function PagePonderations() {
                         className="flex flex-wrap items-center gap-4 py-3"
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-gray-900">
-                            <span className="mr-2 font-mono text-xs font-semibold text-gray-500">
+                          <p className="text-sm font-medium text-neutral-900">
+                            <span className="mr-2 font-mono text-xs font-semibold text-neutral-500">
                               {ponderation.regle}
                             </span>
                             {ponderation.libelle}
@@ -152,9 +152,9 @@ export default function PagePonderations() {
                                 ),
                               }));
                             }}
-                            className="h-2 w-full cursor-pointer accent-indigo-600"
+                            className="h-2 w-full cursor-pointer accent-teal-600"
                           />
-                          <span className="w-10 shrink-0 text-right text-sm font-semibold tabular-nums text-gray-900">
+                          <span className="w-10 shrink-0 text-right text-sm font-semibold tabular-nums text-neutral-900">
                             {valeur}
                           </span>
                         </div>

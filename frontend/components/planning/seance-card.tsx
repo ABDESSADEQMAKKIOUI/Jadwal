@@ -10,7 +10,7 @@ const COULEUR_DEFAUT = '#4f46e5';
 function IconeCadenas() {
   return (
     <svg
-      className="h-3 w-3 shrink-0 text-gray-500"
+      className="h-3 w-3 shrink-0 text-neutral-500"
       viewBox="0 0 20 20"
       fill="currentColor"
       aria-label="Séance verrouillée"
@@ -35,7 +35,7 @@ function BoutonMenu({
     <button
       type="button"
       onClick={onClick}
-      className="block w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+      className="block w-full px-3 py-1.5 text-left text-xs text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
     >
       {children}
     </button>
@@ -104,17 +104,17 @@ export function SeanceCard({
             : undefined,
         zIndex: isDragging ? 40 : menuOuvert ? 30 : 10,
       }}
-      className={`relative m-0.5 flex min-h-0 flex-col overflow-visible rounded-md border border-gray-200 border-l-4 bg-white p-1.5 text-[11px] leading-tight shadow-sm ${
+      className={`relative m-0.5 flex min-h-0 flex-col overflow-visible rounded-md border border-neutral-200 border-l-4 bg-white p-1.5 text-[11px] leading-tight shadow-sm ${
         seance.verrouillee ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'
-      } ${isDragging ? 'opacity-90 shadow-lg ring-2 ring-indigo-300' : ''}`}
+      } ${isDragging ? 'opacity-90 shadow-lg ring-2 ring-teal-300' : ''}`}
     >
       <div className="flex items-start justify-between gap-1">
-        <p className="truncate font-semibold text-gray-900">
+        <p className="truncate font-semibold text-neutral-900">
           {seance.matiereLibelle}
         </p>
         <span className="flex shrink-0 items-center gap-1">
           {seance.semaine !== 'TOUTES' && (
-            <span className="rounded bg-indigo-100 px-1 text-[9px] font-bold text-indigo-700">
+            <span className="rounded bg-teal-100 px-1 text-[9px] font-bold text-teal-700">
               {seance.semaine}
             </span>
           )}
@@ -127,7 +127,7 @@ export function SeanceCard({
               evenement.stopPropagation();
               setMenuOuvert((ouvert) => !ouvert);
             }}
-            className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+            className="rounded p-0.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700"
           >
             <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
               <path d="M10 6a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm0 5.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm0 5.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z" />
@@ -136,7 +136,7 @@ export function SeanceCard({
         </span>
       </div>
       {lignes.map((ligne, index) => (
-        <p key={`${index}-${ligne}`} className="truncate text-gray-600">
+        <p key={`${index}-${ligne}`} className="truncate text-neutral-600">
           {ligne}
         </p>
       ))}
@@ -157,7 +157,7 @@ export function SeanceCard({
               setMenuOuvert(false);
             }}
           />
-          <div className="absolute right-0 top-6 z-50 w-44 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+          <div className="absolute right-0 top-6 z-50 w-44 rounded-lg border border-neutral-200 bg-white py-1 shadow-lg">
             <BoutonMenu
               onClick={() => {
                 setMenuOuvert(false);

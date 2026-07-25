@@ -107,8 +107,8 @@ export default function PagePaiements() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Paiements</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-xl font-semibold text-neutral-900">Paiements</h1>
+          <p className="mt-1 text-sm text-neutral-500">
             Paiements manuels (virement bancaire, espèces, chèque) enregistrés
             par l’administration.
           </p>
@@ -158,8 +158,8 @@ export default function PagePaiements() {
               </THead>
               <TBody>
                 {paiements.map((paiement) => (
-                  <Tr key={paiement.id} className="hover:bg-gray-50">
-                    <Td className="font-medium text-gray-900">
+                  <Tr key={paiement.id} className="hover:bg-neutral-50">
+                    <Td className="font-medium text-neutral-900">
                       {paiement.etablissementNom}
                     </Td>
                     <Td>{paiement.planNom}</Td>

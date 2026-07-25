@@ -57,8 +57,8 @@ export default function PagePlans() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Plans</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-xl font-semibold text-neutral-900">Plans</h1>
+          <p className="mt-1 text-sm text-neutral-500">
             Offres d’abonnement annuel proposées aux établissements.
           </p>
         </div>
@@ -100,7 +100,7 @@ export default function PagePlans() {
                 {plans.map((plan) => (
                   <Tr key={plan.id}>
                     <Td>{plan.code}</Td>
-                    <Td className="font-medium text-gray-900">{plan.nom}</Td>
+                    <Td className="font-medium text-neutral-900">{plan.nom}</Td>
                     <Td>{formatMontant(plan.prixAnnuel)}</Td>
                     <Td className="max-w-md">{plan.description}</Td>
                     <Td>{plan.actif ? 'Oui' : 'Non'}</Td>

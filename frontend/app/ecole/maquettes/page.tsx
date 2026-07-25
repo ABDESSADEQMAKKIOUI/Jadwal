@@ -189,8 +189,8 @@ export default function PageMaquettes() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">Maquettes horaires</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-xl font-semibold text-neutral-900">Maquettes horaires</h1>
+        <p className="mt-1 text-sm text-neutral-500">
           Volumes hebdomadaires par niveau et par matière, affectations des
           enseignants et dérogations de volume par groupe. Unité = 30 minutes.
         </p>
@@ -218,38 +218,38 @@ export default function PageMaquettes() {
             {lignes.length === 0 ? (
               <EmptyState message="Aucune ligne. Ajoutez les matières de ce niveau." />
             ) : (
-              <div className="overflow-x-auto rounded-lg border border-gray-200">
+              <div className="overflow-x-auto rounded-lg border border-neutral-200">
                 <table className="w-full min-w-max text-left text-sm">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-neutral-50">
                     <tr>
-                      <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">
                         Matière
                       </th>
-                      <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">
                         Volume (unités)
                       </th>
-                      <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">
                         Vol. semaine B
                       </th>
-                      <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">
                         Max / jour
                       </th>
-                      <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">
                         Dédoublement
                       </th>
-                      <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">
                         Nb sous-grp
                       </th>
-                      <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">
                         Co-ens.
                       </th>
-                      <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">
                         Patterns (ex. « 4,4 | 4,2,2 »)
                       </th>
                       <th className="px-3 py-3" />
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100 bg-white">
+                  <tbody className="divide-y divide-neutral-100 bg-white">
                     {lignes.map((ligne, index) => (
                       <tr key={index}>
                         <td className="px-3 py-2">
@@ -284,7 +284,7 @@ export default function PageMaquettes() {
                             className="w-20"
                             required
                           />
-                          <p className="mt-1 text-xs text-gray-500">
+                          <p className="mt-1 text-xs text-neutral-500">
                             {formatUnites(Number(ligne.volumeUnites) || 0)}
                           </p>
                         </td>
@@ -412,7 +412,7 @@ export default function PageMaquettes() {
                 >
                   Ajouter une ligne
                 </Button>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-neutral-600">
                   Total : <span className="font-semibold">{totalUnites}</span>{' '}
                   unités ({formatUnites(totalUnites)})
                 </p>
@@ -555,14 +555,14 @@ function SectionAffectations() {
             <TBody>
               {affectations.map((affectation) => (
                 <Tr key={affectation.id}>
-                  <Td className="font-medium text-gray-900">
+                  <Td className="font-medium text-neutral-900">
                     {affectation.groupeLibelle}
                   </Td>
                   <Td>{affectation.matiereLibelle}</Td>
                   <Td>{affectation.enseignantNom}</Td>
                   <Td>
                     {affectation.volumeUnites === null ? (
-                      <span className="text-gray-500">Hérité de la maquette</span>
+                      <span className="text-neutral-500">Hérité de la maquette</span>
                     ) : (
                       formatUnites(affectation.volumeUnites)
                     )}
@@ -672,7 +672,7 @@ function SectionAffectations() {
               placeholder="Vide = volume de la maquette"
             />
             {formulaire.volumeUnites.trim().length > 0 && (
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-neutral-500">
                 Soit {formatUnites(Number(formulaire.volumeUnites) || 0)}.
               </p>
             )}
@@ -776,7 +776,7 @@ function SectionOverrides() {
         </Button>
       }
     >
-      <p className="mb-4 text-sm text-gray-500">
+      <p className="mb-4 text-sm text-neutral-500">
         Remplace ponctuellement le volume de la maquette pour un groupe donné
         (ex. classe à option renforcée).
       </p>
@@ -804,7 +804,7 @@ function SectionOverrides() {
             <TBody>
               {overrides.map((override) => (
                 <Tr key={override.id}>
-                  <Td className="font-medium text-gray-900">
+                  <Td className="font-medium text-neutral-900">
                     {libellesGroupes.get(override.groupeId) ??
                       `Groupe ${override.groupeId}`}
                   </Td>
@@ -896,7 +896,7 @@ function SectionOverrides() {
               }
               required
             />
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-neutral-500">
               Soit {formatUnites(Number(formulaire.volumeUnites) || 0)}.
             </p>
           </div>

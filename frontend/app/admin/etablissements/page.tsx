@@ -61,8 +61,8 @@ export default function PageEtablissements() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Établissements</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-xl font-semibold text-neutral-900">Établissements</h1>
+          <p className="mt-1 text-sm text-neutral-500">
             Écoles clientes de la plateforme JADWAL.
           </p>
         </div>
@@ -96,8 +96,8 @@ export default function PageEtablissements() {
               </THead>
               <TBody>
                 {etablissements.map((etablissement) => (
-                  <Tr key={etablissement.id} className="hover:bg-gray-50">
-                    <Td className="font-medium text-gray-900">
+                  <Tr key={etablissement.id} className="hover:bg-neutral-50">
+                    <Td className="font-medium text-neutral-900">
                       {etablissement.nom}
                     </Td>
                     <Td>{etablissement.code}</Td>
@@ -112,14 +112,14 @@ export default function PageEtablissements() {
                           <Badge statut={etablissement.abonnementActif.statut} />
                         </span>
                       ) : (
-                        <span className="text-gray-400">Aucun</span>
+                        <span className="text-neutral-400">Aucun</span>
                       )}
                     </Td>
                     <Td>{formatDate(etablissement.dateCreation)}</Td>
                     <Td className="text-right">
                       <Link
                         href={`/admin/etablissements/${etablissement.id}`}
-                        className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                        className="text-sm font-medium text-teal-600 hover:text-teal-800"
                       >
                         Détail
                       </Link>

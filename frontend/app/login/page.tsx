@@ -49,12 +49,12 @@ export default function PageConnexion() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
+      <div className="w-full max-w-sm rounded-xl border border-neutral-200 bg-white p-8 shadow-sm">
         <div className="mb-6 flex flex-col items-center gap-3">
           <img src="/jadwal.svg" alt="JADWAL" className="h-10 w-auto" />
           <div className="text-center">
-            <h1 className="text-lg font-semibold text-gray-900">Connexion</h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <h1 className="text-lg font-semibold text-neutral-900">Connexion</h1>
+            <p className="mt-1 text-sm text-neutral-500">
               Plateforme de gestion des emplois du temps scolaires
             </p>
           </div>

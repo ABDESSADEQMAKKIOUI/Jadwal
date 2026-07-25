@@ -186,27 +186,32 @@ public class AmorcageDemo {
     // Matières
     // ------------------------------------------------------------------
 
+    /**
+     * Couleurs de matières : palette catégorielle accordée au design system Ynexis
+     * (teintes mates de même clarté que le teal de marque #47a398), au lieu des
+     * couleurs vives par défaut. Chaque établissement reste libre de les changer.
+     */
     private Map<String, Matiere> creerMatieres(Long etablissementId) {
         Map<String, Matiere> matieres = new LinkedHashMap<>();
-        matieres.put("MATH", matiere(etablissementId, "MATH", "Mathématiques", 5, 5, "#6366f1",
+        matieres.put("MATH", matiere(etablissementId, "MATH", "Mathématiques", 5, 5, "#3a8a80",
                 null, 1, 4, false, false));
-        matieres.put("FR", matiere(etablissementId, "FR", "Français", 4, 4, "#ec4899",
+        matieres.put("FR", matiere(etablissementId, "FR", "Français", 4, 4, "#c14e44",
                 null, 1, 4, false, false));
-        matieres.put("AR", matiere(etablissementId, "AR", "Arabe", 4, 4, "#10b981",
+        matieres.put("AR", matiere(etablissementId, "AR", "Arabe", 4, 4, "#2a6fdb",
                 null, 1, 4, false, false));
-        matieres.put("EN", matiere(etablissementId, "EN", "Anglais", 3, 3, "#f59e0b",
+        matieres.put("EN", matiere(etablissementId, "EN", "Anglais", 3, 3, "#d98a16",
                 null, 1, 4, false, false));
         matieres.put("SVT", matiere(etablissementId, "SVT", "Sciences de la Vie et de la Terre", 3, 4,
-                "#22c55e", "LABO_SVT", 1, 4, false, false));
-        matieres.put("PC", matiere(etablissementId, "PC", "Physique-Chimie", 3, 4, "#06b6d4",
+                "#1f9d57", "LABO_SVT", 1, 4, false, false));
+        matieres.put("PC", matiere(etablissementId, "PC", "Physique-Chimie", 3, 4, "#0f7d8c",
                 "LABO_PC", 1, 4, false, false));
-        matieres.put("HG", matiere(etablissementId, "HG", "Histoire-Géographie", 2, 3, "#a855f7",
+        matieres.put("HG", matiere(etablissementId, "HG", "Histoire-Géographie", 2, 3, "#7a5bb3",
                 null, 1, 4, false, false));
-        matieres.put("INFO", matiere(etablissementId, "INFO", "Informatique", 1, 2, "#64748b",
+        matieres.put("INFO", matiere(etablissementId, "INFO", "Informatique", 1, 2, "#6b7877",
                 "INFO", 1, 4, false, false));
         matieres.put("EPS", matiere(etablissementId, "EPS", "Éducation Physique et Sportive", 1, 1,
-                "#f97316", "GYMNASE", 4, 4, true, false));
-        matieres.put("EI", matiere(etablissementId, "EI", "Éducation Islamique", 2, 2, "#eab308",
+                "#b8502f", "GYMNASE", 4, 4, true, false));
+        matieres.put("EI", matiere(etablissementId, "EI", "Éducation Islamique", 2, 2, "#8a7a1f",
                 null, 1, 4, false, false));
         return matieres;
     }

@@ -1,0 +1,144 @@
+/* ============================================================
+   Ynexis — Color tokens
+   Brand: Yakeey (Moroccan real estate). Primary = Ocean Green teal.
+   Palette anchored on the real Yakeey brand colors:
+     Ocean Green #47a398 · Half Baked #84c9bd · Froly #f2847b
+   The dashboard reads "trustworthy, calm, data-dense" — a confident
+   teal primary, cool teal-tinted neutrals, and domain-matched
+   semantic status colors (green=WON, red=LOSE, amber=PENDING, grey=PAUSED).
+   ============================================================ */
+
+:root {
+  /* ---- Brand teal (primary) -------------------------------- */
+  --teal-50:  #eef9f7;
+  --teal-100: #d2f0ea;
+  --teal-200: #a8e1d7;
+  --teal-300: #84c9bd; /* Yakeey "Half Baked" */
+  --teal-400: #5bb3a6;
+  --teal-500: #47a398; /* Yakeey "Ocean Green" — brand anchor */
+  --teal-600: #3a8a80;
+  --teal-700: #316f68;
+  --teal-800: #2b5953;
+  --teal-900: #234a45;
+  --teal-950: #112927;
+
+  /* ---- Coral accent (Froly) — use sparingly ---------------- */
+  --coral-100: #fde3e0;
+  --coral-300: #f7a9a2;
+  --coral-500: #f2847b; /* Yakeey "Froly" */
+  --coral-600: #e2685e;
+  --coral-700: #c14e44;
+
+  /* ---- Neutrals (cool, faintly teal-tinted) ---------------- */
+  --neutral-0:   #ffffff;
+  --neutral-50:  #f7f9f9;
+  --neutral-100: #eef1f1;
+  --neutral-200: #e2e7e7;
+  --neutral-300: #cdd5d5;
+  --neutral-400: #9aa7a6;
+  --neutral-500: #6b7877;
+  --neutral-600: #4d5958;
+  --neutral-700: #3a4443;
+  --neutral-800: #29302f;
+  --neutral-900: #191f1e;
+  --neutral-950: #0e1312;
+
+  /* ---- Semantic palettes (status) -------------------------- */
+  /* success — WON / COMPLETED / SUCCESS */
+  --green-50:  #e9f7ef;
+  --green-100: #cdedd9;
+  --green-500: #1f9d57;
+  --green-600: #198049;
+  --green-700: #14613a;
+
+  /* danger — LOSE / FAILED / REJECTED */
+  --red-50:  #fdeceb;
+  --red-100: #f9d4d1;
+  --red-500: #dc4640;
+  --red-600: #c1322d;
+  --red-700: #9c2723;
+
+  /* warning — IN_PROGRESS / PENDING / dry-run */
+  --amber-50:  #fdf3e3;
+  --amber-100: #f9e3bf;
+  --amber-500: #d98a16;
+  --amber-600: #b86f0d;
+  --amber-700: #8f560a;
+
+  /* info — NEW / informational */
+  --blue-50:  #eaf2fc;
+  --blue-100: #cfe0f7;
+  --blue-500: #2a6fdb;
+  --blue-600: #2159b5;
+  --blue-700: #1a468f;
+
+  /* ============================================================
+     SEMANTIC ALIASES — reference these in product UI, not raw scales
+     ============================================================ */
+
+  /* Primary action */
+  --color-primary:        var(--teal-500);
+  --color-primary-hover:  var(--teal-600);
+  --color-primary-active: var(--teal-700);
+  --color-primary-weak:   var(--teal-50);
+  --color-primary-border: var(--teal-200);
+  --color-on-primary:     #ffffff;
+
+  --color-accent:         var(--coral-500);
+  --color-accent-hover:   var(--coral-600);
+
+  /* Surfaces */
+  --surface-app:     var(--neutral-50);   /* page background */
+  --surface-card:    var(--neutral-0);    /* cards, tables, panels */
+  --surface-sunken:  var(--neutral-100);  /* wells, table zebra, code */
+  --surface-raised:  var(--neutral-0);
+  --surface-inverse: var(--neutral-900);  /* sidebar / dark chrome */
+  --surface-hover:   var(--neutral-100);
+  --surface-selected: var(--teal-50);
+  --surface-overlay: rgba(14, 19, 18, 0.45); /* modal scrim */
+
+  /* Text */
+  --text-strong:   var(--neutral-900);
+  --text-body:     var(--neutral-700);
+  --text-muted:    var(--neutral-500);
+  --text-subtle:   var(--neutral-400);
+  --text-on-dark:  #ffffff;
+  --text-on-dark-muted: rgba(255, 255, 255, 0.62);
+  --text-link:     var(--teal-600);
+
+  /* Borders */
+  --border-subtle:  var(--neutral-200);
+  --border-default: var(--neutral-300);
+  --border-strong:  var(--neutral-400);
+  --border-focus:   var(--teal-500);
+
+  /* Focus ring */
+  --ring: 0 0 0 3px rgba(71, 163, 152, 0.32);
+  --ring-danger: 0 0 0 3px rgba(220, 70, 64, 0.30);
+
+  /* ---- Status semantic pairs (pill bg / fg / border) ------- */
+  /* success */
+  --status-success-bg:     var(--green-50);
+  --status-success-fg:     var(--green-700);
+  --status-success-solid:  var(--green-500);
+  /* danger */
+  --status-danger-bg:      var(--red-50);
+  --status-danger-fg:      var(--red-700);
+  --status-danger-solid:   var(--red-500);
+  /* warning */
+  --status-warning-bg:     var(--amber-50);
+  --status-warning-fg:     var(--amber-700);
+  --status-warning-solid:  var(--amber-500);
+  /* info */
+  --status-info-bg:        var(--blue-50);
+  --status-info-fg:        var(--blue-700);
+  --status-info-solid:     var(--blue-500);
+  /* neutral — PAUSED / CANCELLED / inactive */
+  --status-neutral-bg:     var(--neutral-100);
+  --status-neutral-fg:     var(--neutral-600);
+  --status-neutral-solid:  var(--neutral-400);
+  /* active/brand — ACTIVE campaign, live */
+  --status-active-bg:      var(--teal-50);
+  --status-active-fg:      var(--teal-700);
+  --status-active-solid:   var(--teal-500);
+}

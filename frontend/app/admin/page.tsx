@@ -14,9 +14,9 @@ function CarteStatistique({
   valeur: string;
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-      <p className="text-sm text-gray-500">{libelle}</p>
-      <p className="mt-2 text-2xl font-semibold text-gray-900">{valeur}</p>
+    <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+      <p className="text-sm text-neutral-500">{libelle}</p>
+      <p className="mt-2 text-2xl font-semibold text-neutral-900">{valeur}</p>
     </div>
   );
 }
@@ -29,8 +29,8 @@ export default function PageTableauDeBordAdmin() {
 
   return (
     <div>
-      <h1 className="text-xl font-semibold text-gray-900">Tableau de bord</h1>
-      <p className="mt-1 text-sm text-gray-500">
+      <h1 className="text-xl font-semibold text-neutral-900">Tableau de bord</h1>
+      <p className="mt-1 text-sm text-neutral-500">
         Vue d’ensemble de la plateforme JADWAL.
       </p>
 

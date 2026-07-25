@@ -8,7 +8,7 @@ export function Input({
 }: InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
-      className={`w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 disabled:bg-gray-100 ${className}`}
+      className={`h-[var(--control-height-md)] w-full rounded-sm border border-line-default bg-surface-card px-3 text-base text-ink-strong transition-colors duration-[var(--duration-fast)] placeholder:text-ink-subtle focus:border-brand focus:outline-none focus:shadow-[var(--ring)] disabled:bg-surface-sunken disabled:text-ink-muted ${className}`}
       {...props}
     />
   );

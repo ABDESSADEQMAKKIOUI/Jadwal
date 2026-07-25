@@ -16,9 +16,13 @@ export function Dialog({
   if (!ouvert) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div
+      className="fixed inset-0 flex items-center justify-center p-4"
+      style={{ zIndex: 'var(--z-modal)' }}
+    >
+      {/* Voile de modale : --surface-overlay du design system. */}
       <div
-        className="absolute inset-0 bg-gray-900/50"
+        className="absolute inset-0 bg-[var(--surface-overlay)]"
         onClick={onFermer}
         aria-hidden="true"
       />
@@ -26,15 +30,15 @@ export function Dialog({
         role="dialog"
         aria-modal="true"
         aria-label={titre}
-        className="relative w-full max-w-lg rounded-xl border border-gray-200 bg-white p-6 shadow-xl"
+        className="relative w-full max-w-lg rounded-lg border border-line-subtle bg-surface-card p-6 shadow-[var(--shadow-lg)]"
       >
-        <div className="mb-5 flex items-start justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">{titre}</h2>
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <h2 className="text-lg font-semibold text-ink-strong">{titre}</h2>
           <button
             type="button"
             onClick={onFermer}
             aria-label="Fermer"
-            className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="-mr-1 -mt-1 rounded-sm p-1 text-ink-subtle transition-colors hover:bg-surface-hover hover:text-ink-body focus-visible:outline-none focus-visible:shadow-[var(--ring)]"
           >
             <svg
               className="h-5 w-5"

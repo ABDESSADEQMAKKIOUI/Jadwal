@@ -371,53 +371,53 @@ export default function PageDetailEnseignant() {
       <div>
         <Link
           href="/ecole/enseignants"
-          className="text-sm text-indigo-600 hover:text-indigo-800 hover:underline"
+          className="text-sm text-teal-600 hover:text-teal-800 hover:underline"
         >
           ← Retour aux enseignants
         </Link>
-        <h1 className="mt-2 text-xl font-semibold text-gray-900">
+        <h1 className="mt-2 text-xl font-semibold text-neutral-900">
           {enseignant.nomComplet}
         </h1>
-        <p className="mt-1 text-sm text-gray-500">{enseignant.email}</p>
+        <p className="mt-1 text-sm text-neutral-500">{enseignant.email}</p>
       </div>
 
       <Card titre="Fiche enseignant">
         <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
           <div>
-            <dt className="text-gray-500">Type</dt>
-            <dd className="mt-0.5 font-medium text-gray-900">
+            <dt className="text-neutral-500">Type</dt>
+            <dd className="mt-0.5 font-medium text-neutral-900">
               {enseignant.type === 'MIXTE' ? 'Mixte' : 'Propre'}
             </dd>
           </div>
           <div>
-            <dt className="text-gray-500">Quota hebdomadaire</dt>
-            <dd className="mt-0.5 font-medium text-gray-900">
+            <dt className="text-neutral-500">Quota hebdomadaire</dt>
+            <dd className="mt-0.5 font-medium text-neutral-900">
               {formatUnites(enseignant.quotaHebdoUnites)}
             </dd>
           </div>
           <div>
-            <dt className="text-gray-500">Charge affectée</dt>
-            <dd className="mt-0.5 font-medium text-gray-900">
+            <dt className="text-neutral-500">Charge affectée</dt>
+            <dd className="mt-0.5 font-medium text-neutral-900">
               {formatUnites(enseignant.chargeAffectee)}
             </dd>
           </div>
           <div>
-            <dt className="text-gray-500">Vacataire</dt>
-            <dd className="mt-0.5 font-medium text-gray-900">
+            <dt className="text-neutral-500">Vacataire</dt>
+            <dd className="mt-0.5 font-medium text-neutral-900">
               {enseignant.vacataire
                 ? `Oui (buffer ${formatUnites(enseignant.bufferTrajetUnites)})`
                 : 'Non'}
             </dd>
           </div>
           <div>
-            <dt className="text-gray-500">Max consécutif</dt>
-            <dd className="mt-0.5 font-medium text-gray-900">
+            <dt className="text-neutral-500">Max consécutif</dt>
+            <dd className="mt-0.5 font-medium text-neutral-900">
               {formatUnites(enseignant.maxConsecutifUnites)}
             </dd>
           </div>
           <div>
-            <dt className="text-gray-500">Amplitude max / jour</dt>
-            <dd className="mt-0.5 font-medium text-gray-900">
+            <dt className="text-neutral-500">Amplitude max / jour</dt>
+            <dd className="mt-0.5 font-medium text-neutral-900">
               {formatUnites(enseignant.amplitudeMaxUnites)}
             </dd>
           </div>
@@ -449,16 +449,16 @@ export default function PageDetailEnseignant() {
                   key={matiere.id}
                   className={`rounded-lg border p-3 ${
                     habilite
-                      ? 'border-indigo-200 bg-indigo-50/50'
-                      : 'border-gray-100'
+                      ? 'border-teal-200 bg-teal-50/50'
+                      : 'border-neutral-100'
                   }`}
                 >
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-900">
+                  <label className="flex items-center gap-2 text-sm font-medium text-neutral-900">
                     <input
                       type="checkbox"
                       checked={habilite}
                       onChange={() => basculerMatiere(matiere.id)}
-                      className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      className="h-4 w-4 rounded border-neutral-300 text-teal-600 focus:ring-teal-500"
                     />
                     <span
                       className="inline-block h-3 w-3 rounded"
@@ -470,14 +470,14 @@ export default function PageDetailEnseignant() {
                   {habilite && (
                     <div className="mt-2 flex flex-wrap gap-4 pl-6">
                       {(niveaux ?? []).length === 0 && (
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-neutral-500">
                           Aucun niveau défini.
                         </p>
                       )}
                       {(niveaux ?? []).map((niveau) => (
                         <label
                           key={niveau.id}
-                          className="flex items-center gap-1.5 text-sm text-gray-700"
+                          className="flex items-center gap-1.5 text-sm text-neutral-700"
                         >
                           <input
                             type="checkbox"
@@ -487,7 +487,7 @@ export default function PageDetailEnseignant() {
                             onChange={() =>
                               basculerNiveau(matiere.id, niveau.id)
                             }
-                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                            className="h-4 w-4 rounded border-neutral-300 text-teal-600 focus:ring-teal-500"
                           />
                           {niveau.libelle}
                         </label>
@@ -527,7 +527,7 @@ export default function PageDetailEnseignant() {
           </Button>
         }
       >
-        <div className="mb-4 rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-900">
+        <div className="mb-4 rounded-lg border border-teal-100 bg-teal-50 px-4 py-3 text-sm text-teal-900">
           Règle D-04 : seules les indisponibilités au statut « Validée » sont
           prises en compte par le moteur de génération. Pensez à valider les
           brouillons ci-dessous.
@@ -537,7 +537,7 @@ export default function PageDetailEnseignant() {
           <EmptyState message="Configurez d’abord la grille horaire dans le référentiel." />
         ) : (
           <>
-            <p className="mb-3 text-sm text-gray-500">
+            <p className="mb-3 text-sm text-neutral-500">
               Cliquez sur une cellule pour créer ou supprimer une
               indisponibilité, ou faites un cliquer-glisser vertical pour créer
               une plage.
@@ -550,13 +550,13 @@ export default function PageDetailEnseignant() {
               <table className="min-w-full border-separate border-spacing-0.5">
                 <thead>
                   <tr>
-                    <th className="w-16 px-1 py-1 text-left text-xs font-semibold text-gray-500">
+                    <th className="w-16 px-1 py-1 text-left text-xs font-semibold text-neutral-500">
                       Heure
                     </th>
                     {grille.joursActifs.map((jour) => (
                       <th
                         key={jour}
-                        className="px-1 py-1 text-center text-xs font-semibold text-gray-500"
+                        className="px-1 py-1 text-center text-xs font-semibold text-neutral-500"
                       >
                         {LIBELLES_JOURS[jour]}
                       </th>
@@ -568,7 +568,7 @@ export default function PageDetailEnseignant() {
                     const bloquee = estPlageBloquee(grille, index);
                     return (
                       <tr key={index}>
-                        <td className="whitespace-nowrap px-1 py-0.5 text-xs text-gray-500">
+                        <td className="whitespace-nowrap px-1 py-0.5 text-xs text-neutral-500">
                           {libelleHeure(grille, index)}
                         </td>
                         {grille.joursActifs.map((jour) => {
@@ -576,7 +576,7 @@ export default function PageDetailEnseignant() {
                             return (
                               <td
                                 key={jour}
-                                className="h-7 min-w-20 rounded bg-gray-200"
+                                className="h-7 min-w-20 rounded bg-neutral-200"
                                 title="Plage bloquée (déjeuner, pause…)"
                               />
                             );
@@ -589,14 +589,14 @@ export default function PageDetailEnseignant() {
                               Math.min(selection.debut, selection.fin) &&
                             index <= Math.max(selection.debut, selection.fin);
                           let classe =
-                            'bg-gray-50 hover:bg-indigo-100 cursor-pointer';
+                            'bg-neutral-50 hover:bg-teal-100 cursor-pointer';
                           if (indispo !== undefined) {
                             classe =
                               indispo.statut === 'VALIDE'
                                 ? 'bg-red-400 hover:bg-red-500 cursor-pointer'
                                 : 'bg-amber-300 hover:bg-amber-400 cursor-pointer';
                           } else if (enSelection) {
-                            classe = 'bg-indigo-300 cursor-pointer';
+                            classe = 'bg-teal-300 cursor-pointer';
                           }
                           return (
                             <td
@@ -641,7 +641,7 @@ export default function PageDetailEnseignant() {
                 </tbody>
               </table>
             </div>
-            <div className="mt-3 flex flex-wrap gap-4 text-xs text-gray-600">
+            <div className="mt-3 flex flex-wrap gap-4 text-xs text-neutral-600">
               <span className="flex items-center gap-1.5">
                 <span className="inline-block h-3 w-3 rounded bg-amber-300" />
                 Brouillon
@@ -651,7 +651,7 @@ export default function PageDetailEnseignant() {
                 Validée
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="inline-block h-3 w-3 rounded bg-gray-200" />
+                <span className="inline-block h-3 w-3 rounded bg-neutral-200" />
                 Plage bloquée
               </span>
             </div>
@@ -687,7 +687,7 @@ export default function PageDetailEnseignant() {
               <TBody>
                 {(indisponibilites ?? []).map((indispo) => (
                   <Tr key={indispo.id}>
-                    <Td className="font-medium text-gray-900">
+                    <Td className="font-medium text-neutral-900">
                       {LIBELLES_JOURS[indispo.jour]}
                     </Td>
                     <Td>
@@ -753,7 +753,7 @@ export default function PageDetailEnseignant() {
           <EmptyState message="Configurez d’abord la grille horaire dans le référentiel." />
         ) : (
           <>
-            <p className="mb-3 text-sm text-gray-500">
+            <p className="mb-3 text-sm text-neutral-500">
               Cliquez sur une cellule pour alterner : neutre → à éviter →
               préféré. Enregistrez ensuite vos modifications.
             </p>
@@ -761,13 +761,13 @@ export default function PageDetailEnseignant() {
               <table className="min-w-full border-separate border-spacing-0.5">
                 <thead>
                   <tr>
-                    <th className="w-16 px-1 py-1 text-left text-xs font-semibold text-gray-500">
+                    <th className="w-16 px-1 py-1 text-left text-xs font-semibold text-neutral-500">
                       Heure
                     </th>
                     {grille.joursActifs.map((jour) => (
                       <th
                         key={jour}
-                        className="px-1 py-1 text-center text-xs font-semibold text-gray-500"
+                        className="px-1 py-1 text-center text-xs font-semibold text-neutral-500"
                       >
                         {LIBELLES_JOURS[jour]}
                       </th>
@@ -779,7 +779,7 @@ export default function PageDetailEnseignant() {
                     const bloquee = estPlageBloquee(grille, index);
                     return (
                       <tr key={index}>
-                        <td className="whitespace-nowrap px-1 py-0.5 text-xs text-gray-500">
+                        <td className="whitespace-nowrap px-1 py-0.5 text-xs text-neutral-500">
                           {libelleHeure(grille, index)}
                         </td>
                         {grille.joursActifs.map((jour) => {
@@ -787,7 +787,7 @@ export default function PageDetailEnseignant() {
                             return (
                               <td
                                 key={jour}
-                                className="h-7 min-w-20 rounded bg-gray-200"
+                                className="h-7 min-w-20 rounded bg-neutral-200"
                                 title="Plage bloquée"
                               />
                             );
@@ -798,7 +798,7 @@ export default function PageDetailEnseignant() {
                               ? 'bg-red-300 hover:bg-red-400'
                               : type === 'PREFERER'
                                 ? 'bg-green-300 hover:bg-green-400'
-                                : 'bg-gray-50 hover:bg-indigo-100';
+                                : 'bg-neutral-50 hover:bg-teal-100';
                           return (
                             <td
                               key={jour}
@@ -820,7 +820,7 @@ export default function PageDetailEnseignant() {
                 </tbody>
               </table>
             </div>
-            <div className="mt-3 flex flex-wrap gap-4 text-xs text-gray-600">
+            <div className="mt-3 flex flex-wrap gap-4 text-xs text-neutral-600">
               <span className="flex items-center gap-1.5">
                 <span className="inline-block h-3 w-3 rounded bg-red-300" />À
                 éviter
@@ -830,7 +830,7 @@ export default function PageDetailEnseignant() {
                 Préféré
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="inline-block h-3 w-3 rounded bg-gray-200" />
+                <span className="inline-block h-3 w-3 rounded bg-neutral-200" />
                 Plage bloquée
               </span>
             </div>
@@ -900,7 +900,7 @@ export default function PageDetailEnseignant() {
                 required
               />
               {grille !== undefined && (
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-neutral-500">
                   {libelleHeure(grille, Number(formPlage.indexDebut) || 0)}
                 </p>
               )}
@@ -917,7 +917,7 @@ export default function PageDetailEnseignant() {
                 }
                 required
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-neutral-500">
                 {formatUnites(Number(formPlage.dureeUnites) || 0)}
               </p>
             </div>

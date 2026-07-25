@@ -59,13 +59,13 @@ function MessageErreur({ message }: { message: string }) {
 }
 
 function Pastilles({ elements }: { elements: string[] }) {
-  if (elements.length === 0) return <span className="text-gray-400">—</span>;
+  if (elements.length === 0) return <span className="text-neutral-400">—</span>;
   return (
     <span className="flex flex-wrap gap-1">
       {elements.map((element) => (
         <span
           key={element}
-          className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600"
+          className="inline-flex items-center rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-600"
         >
           {element}
         </span>
@@ -96,13 +96,13 @@ export default function PageReferentiel() {
 
   return (
     <div>
-      <h1 className="text-xl font-semibold text-gray-900">Référentiel</h1>
-      <p className="mt-1 text-sm text-gray-500">
+      <h1 className="text-xl font-semibold text-neutral-900">Référentiel</h1>
+      <p className="mt-1 text-sm text-neutral-500">
         Grille horaire, niveaux, groupes, matières, salles et barrettes de votre
         établissement. Toutes les durées sont exprimées en unités de 30 minutes.
       </p>
 
-      <div className="mt-6 border-b border-gray-200">
+      <div className="mt-6 border-b border-neutral-200">
         <nav className="-mb-px flex flex-wrap gap-1">
           {ONGLETS.map((element) => (
             <button
@@ -111,8 +111,8 @@ export default function PageReferentiel() {
               onClick={() => setOnglet(element.id)}
               className={`border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
                 onglet === element.id
-                  ? 'border-indigo-600 text-indigo-700'
-                  : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                  ? 'border-teal-600 text-teal-700'
+                  : 'border-transparent text-neutral-500 hover:border-neutral-300 hover:text-neutral-700'
               }`}
             >
               {element.libelle}
@@ -232,13 +232,13 @@ function OngletGrille() {
                 {TOUS_LES_JOURS.map((jour) => (
                   <label
                     key={jour}
-                    className="flex items-center gap-2 text-sm text-gray-700"
+                    className="flex items-center gap-2 text-sm text-neutral-700"
                   >
                     <input
                       type="checkbox"
                       checked={formulaire.joursActifs.includes(jour)}
                       onChange={() => basculerJour(jour)}
-                      className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      className="h-4 w-4 rounded border-neutral-300 text-teal-600 focus:ring-teal-500"
                     />
                     {LIBELLES_JOURS[jour]}
                   </label>
@@ -290,7 +290,7 @@ function OngletGrille() {
                   }
                   required
                 />
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-neutral-500">
                   Soit {formatUnites(formulaire.unitesParJour)} par jour.
                 </p>
               </div>
@@ -309,7 +309,7 @@ function OngletGrille() {
                   }
                   required
                 />
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-neutral-500">
                   Soit {formatUnites(formulaire.amplitudeMaxUnites)} maximum.
                 </p>
               </div>
@@ -344,7 +344,7 @@ function OngletGrille() {
               {formulaire.plagesBloquees.map((plage, index) => (
                 <div
                   key={index}
-                  className="flex flex-wrap items-end gap-3 rounded-lg border border-gray-100 bg-gray-50 p-3"
+                  className="flex flex-wrap items-end gap-3 rounded-lg border border-neutral-100 bg-neutral-50 p-3"
                 >
                   <div className="w-40">
                     <Label htmlFor={`plageType${index}`}>Type</Label>
@@ -384,7 +384,7 @@ function OngletGrille() {
                       required
                     />
                   </div>
-                  <p className="pb-2 text-xs text-gray-500">
+                  <p className="pb-2 text-xs text-neutral-500">
                     {formatUnites(plage.dureeUnites)}
                   </p>
                   <Button
@@ -566,7 +566,7 @@ function OngletNiveaux() {
             {liste.map((niveau) => (
               <Tr key={niveau.id}>
                 <Td>{niveau.ordre}</Td>
-                <Td className="font-medium text-gray-900">{niveau.libelle}</Td>
+                <Td className="font-medium text-neutral-900">{niveau.libelle}</Td>
                 <Td>{niveau.cycle}</Td>
                 <Td>
                   {niveau.chargeMaxUnitesJour} unités (
@@ -672,7 +672,7 @@ function OngletNiveaux() {
                 }
                 required
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-neutral-500">
                 Soit {formatUnites(Number(formulaire.chargeMaxUnitesJour) || 0)}{' '}
                 par jour.
               </p>
@@ -794,7 +794,7 @@ function OngletGroupes() {
   function ligneGroupe(groupe: Groupe, sousGroupe: boolean) {
     return (
       <Tr key={groupe.id}>
-        <Td className={sousGroupe ? 'pl-10' : 'font-medium text-gray-900'}>
+        <Td className={sousGroupe ? 'pl-10' : 'font-medium text-neutral-900'}>
           {sousGroupe ? `↳ ${groupe.libelle}` : groupe.libelle}
         </Td>
         <Td>{groupe.niveauLibelle}</Td>
@@ -967,7 +967,7 @@ function OngletGroupes() {
           }}
           className="space-y-4"
         >
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-neutral-600">
             Des sous-groupes (G1), (G2)… seront créés et l’effectif sera réparti
             équitablement.
           </p>
@@ -1137,7 +1137,7 @@ function OngletMatieres() {
           <TBody>
             {liste.map((matiere) => (
               <Tr key={matiere.id}>
-                <Td className="font-medium text-gray-900">
+                <Td className="font-medium text-neutral-900">
                   <span className="flex items-center gap-2">
                     <span
                       className="inline-block h-4 w-4 shrink-0 rounded"
@@ -1282,7 +1282,7 @@ function OngletMatieres() {
                 onChange={(e) =>
                   setFormulaire({ ...formulaire, couleur: e.target.value })
                 }
-                className="h-9 w-full cursor-pointer rounded-lg border border-gray-300 bg-white p-1"
+                className="h-9 w-full cursor-pointer rounded-lg border border-neutral-300 bg-white p-1"
               />
             </div>
           </div>
@@ -1334,7 +1334,7 @@ function OngletMatieres() {
                 }
                 required
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-neutral-500">
                 {formatUnites(Number(formulaire.dureeMinUnites) || 0)}
               </p>
             </div>
@@ -1353,13 +1353,13 @@ function OngletMatieres() {
                 }
                 required
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-neutral-500">
                 {formatUnites(Number(formulaire.dureeMaxUnites) || 0)}
               </p>
             </div>
           </div>
           <div className="flex flex-wrap gap-6">
-            <label className="flex items-center gap-2 text-sm text-gray-700">
+            <label className="flex items-center gap-2 text-sm text-neutral-700">
               <input
                 type="checkbox"
                 checked={formulaire.eviterAvantDejeuner}
@@ -1369,11 +1369,11 @@ function OngletMatieres() {
                     eviterAvantDejeuner: e.target.checked,
                   })
                 }
-                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                className="h-4 w-4 rounded border-neutral-300 text-teal-600 focus:ring-teal-500"
               />
               Éviter avant le déjeuner
             </label>
-            <label className="flex items-center gap-2 text-sm text-gray-700">
+            <label className="flex items-center gap-2 text-sm text-neutral-700">
               <input
                 type="checkbox"
                 checked={formulaire.eviterFinJournee}
@@ -1383,7 +1383,7 @@ function OngletMatieres() {
                     eviterFinJournee: e.target.checked,
                   })
                 }
-                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                className="h-4 w-4 rounded border-neutral-300 text-teal-600 focus:ring-teal-500"
               />
               Éviter en fin de journée
             </label>
@@ -1519,7 +1519,7 @@ function OngletSalles() {
           <TBody>
             {liste.map((salle) => (
               <Tr key={salle.id}>
-                <Td className="font-medium text-gray-900">{salle.nom}</Td>
+                <Td className="font-medium text-neutral-900">{salle.nom}</Td>
                 <Td>{salle.capacite}</Td>
                 <Td>{salle.type}</Td>
                 <Td>
@@ -1751,7 +1751,7 @@ function OngletBarrettes() {
         </Button>
       }
     >
-      <p className="mb-4 text-sm text-gray-500">
+      <p className="mb-4 text-sm text-neutral-500">
         Une barrette aligne une matière sur le même créneau pour plusieurs
         groupes (ex. langues vivantes).
       </p>
@@ -1775,7 +1775,7 @@ function OngletBarrettes() {
           <TBody>
             {liste.map((barrette) => (
               <Tr key={barrette.id}>
-                <Td className="font-medium text-gray-900">{barrette.libelle}</Td>
+                <Td className="font-medium text-neutral-900">{barrette.libelle}</Td>
                 <Td>{barrette.matiereLibelle}</Td>
                 <Td>
                   <Pastilles
@@ -1848,16 +1848,16 @@ function OngletBarrettes() {
           </div>
           <div>
             <Label>Groupes concernés</Label>
-            <div className="mt-1 max-h-52 space-y-1 overflow-y-auto rounded-lg border border-gray-200 p-3">
+            <div className="mt-1 max-h-52 space-y-1 overflow-y-auto rounded-lg border border-neutral-200 p-3">
               {groupesAplatis.length === 0 && (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-neutral-500">
                   Aucun groupe disponible.
                 </p>
               )}
               {groupesAplatis.map((groupe) => (
                 <label
                   key={groupe.id}
-                  className="flex items-center gap-2 text-sm text-gray-700"
+                  className="flex items-center gap-2 text-sm text-neutral-700"
                 >
                   <input
                     type="checkbox"
@@ -1869,7 +1869,7 @@ function OngletBarrettes() {
                           : groupeIds.filter((id) => id !== groupe.id),
                       )
                     }
-                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    className="h-4 w-4 rounded border-neutral-300 text-teal-600 focus:ring-teal-500"
                   />
                   {groupe.libelle}
                 </label>
