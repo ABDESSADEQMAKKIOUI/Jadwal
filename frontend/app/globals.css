@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+:root {
+  --couleur-primaire: #4f46e5;
+  --couleur-primaire-foncee: #4338ca;
+  --couleur-fond: #f4f5f7;
+  --couleur-texte: #1f2937;
+}
+
+body {
+  background-color: var(--couleur-fond);
+  color: var(--couleur-texte);
+}

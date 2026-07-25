@@ -1,0 +1,18 @@
+# Build
+target/
+node_modules/
+.next/
+
+# Environnement
+.env
+
+# Logs
+*.log
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Généré par Next.js
+frontend/next-env.d.ts

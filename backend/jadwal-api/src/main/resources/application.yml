@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: jadwal-api
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/jadwal}
+    username: ${SPRING_DATASOURCE_USERNAME:jadwal}
+    password: ${SPRING_DATASOURCE_PASSWORD:jadwal}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+timefold:
+  solver:
+    termination:
+      spent-limit: 120s
+      unimproved-spent-limit: 30s
+
+jadwal:
+  jwt:
+    secret: ${JADWAL_JWT_SECRET:jadwal-dev-secret-change-me-0123456789abcdef}
+  admin:
+    password: ${JADWAL_ADMIN_PASSWORD:admin123}
+  demo: ${JADWAL_DEMO:false}
