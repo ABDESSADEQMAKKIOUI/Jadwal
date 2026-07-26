@@ -51,8 +51,14 @@ export default function PageConnexion() {
     <div className="flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-sm rounded-xl border border-line-subtle bg-surface-card p-8 shadow-sm">
         <div className="mb-6 flex flex-col items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/jadwal-teal.svg" alt="JADWAL" className="h-10 w-auto" />
+          {/* Symbole + mot composés en HTML : voir la note dans app-shell.tsx. */}
+          <span className="inline-flex items-center gap-2.5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/jadwal-mark.svg" alt="" className="h-8 w-8" />
+            <span className="text-2xl font-semibold tracking-[0.14em] text-ink-strong">
+              JADWAL
+            </span>
+          </span>
           <div className="text-center">
             <h1 className="text-lg font-semibold text-ink-strong">Connexion</h1>
             <p className="mt-1 text-sm text-ink-muted">

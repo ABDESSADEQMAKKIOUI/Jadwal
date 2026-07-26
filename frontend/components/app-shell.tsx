@@ -249,10 +249,28 @@ export default function AppShell({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 8px 18px' }}>
-          {/* Le logo reste cliquable (retour à l'accueil), comme avant la refonte. */}
-          <Link href="/" aria-label="JADWAL — accueil" style={{ display: 'inline-flex', lineHeight: 0 }}>
+          {/* Le logo reste cliquable (retour à l'accueil), comme avant la refonte.
+              Symbole en SVG + mot en HTML : un SVG chargé via <img> est un document
+              isolé qui n'hérite pas de la police Inter de la page. Composer le mot
+              en HTML garantit la vraie Inter à la bonne graisse. */}
+          <Link
+            href="/"
+            aria-label="JADWAL — accueil"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', textDecoration: 'none' }}
+          >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/jadwal-teal.svg" alt="JADWAL" style={{ height: '26px', width: 'auto' }} />
+            <img src="/jadwal-mark-light.svg" alt="" style={{ height: '24px', width: '24px' }} />
+            <span
+              style={{
+                fontSize: 'var(--text-md)',
+                fontWeight: 'var(--weight-semibold)',
+                letterSpacing: '0.14em',
+                color: 'var(--text-on-dark)',
+                lineHeight: 1,
+              }}
+            >
+              JADWAL
+            </span>
           </Link>
         </div>
 

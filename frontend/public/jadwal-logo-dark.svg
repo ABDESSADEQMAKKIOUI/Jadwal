@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 114 24" width="114" height="24" role="img" aria-label="JADWAL">
+  <title>JADWAL</title>
+  <!--
+    Logo horizontal JADWAL — fond sombre (--surface-inverse #191f1e).
+    Même remarque que jadwal-logo.svg : réservé à l'usage externe, l'application
+    compose symbole + mot en HTML pour disposer de la vraie police Inter.
+  -->
+  <g fill="none" stroke="#a8e1d7" stroke-width="1.5" stroke-opacity="0.5">
+    <rect x="0.75" y="0.75" width="4.5" height="4.5" rx="1.25" />
+    <rect x="9.75" y="0.75" width="4.5" height="4.5" rx="1.25" />
+    <rect x="0.75" y="9.75" width="4.5" height="4.5" rx="1.25" />
+    <rect x="9.75" y="9.75" width="4.5" height="4.5" rx="1.25" />
+  </g>
+  <g fill="#a8e1d7">
+    <rect x="18" y="0" width="6" height="6" rx="1.75" />
+    <rect x="18" y="9" width="6" height="6" rx="1.75" />
+    <rect x="0" y="18" width="6" height="6" rx="1.75" />
+    <rect x="9" y="18" width="6" height="6" rx="1.75" />
+    <rect x="18" y="18" width="6" height="6" rx="1.75" />
+  </g>
+  <text
+    x="34"
+    y="17.6"
+    font-family="Inter, 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif"
+    font-size="17"
+    font-weight="600"
+    letter-spacing="2.2"
+    fill="#ffffff"
+  >JADWAL</text>
+</svg>

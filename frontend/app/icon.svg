@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="JADWAL">
+  <title>JADWAL</title>
+  <!--
+    Favicon / icône d'application. À 16 px, les cases en contour du symbole
+    deviennent illisibles : on garde donc la tuile teal pleine et les seules
+    cases du « J », en blanc. Next.js sert ce fichier automatiquement
+    (convention app/icon.svg).
+  -->
+  <rect width="32" height="32" rx="7" fill="#47a398" />
+  <g fill="#ffffff" transform="translate(4 4)">
+    <rect x="18" y="0" width="6" height="6" rx="1.75" />
+    <rect x="18" y="9" width="6" height="6" rx="1.75" />
+    <rect x="0" y="18" width="6" height="6" rx="1.75" />
+    <rect x="9" y="18" width="6" height="6" rx="1.75" />
+    <rect x="18" y="18" width="6" height="6" rx="1.75" />
+  </g>
+</svg>
