@@ -29,8 +29,12 @@ timefold:
       unimproved-spent-limit: 30s
 
 jadwal:
+  # AUCUNE valeur de repli, volontairement : ces deux secrets gouvernent toute
+  # l'authentification et l'isolation entre établissements. Un repli codé en dur
+  # dans un dépôt public revient à publier la clé de production — le contexte
+  # Spring doit donc refuser de démarrer si la variable est absente.
   jwt:
-    secret: ${JADWAL_JWT_SECRET:jadwal-dev-secret-change-me-0123456789abcdef}
+    secret: ${JADWAL_JWT_SECRET}
   admin:
-    password: ${JADWAL_ADMIN_PASSWORD:admin123}
+    password: ${JADWAL_ADMIN_PASSWORD}
   demo: ${JADWAL_DEMO:false}

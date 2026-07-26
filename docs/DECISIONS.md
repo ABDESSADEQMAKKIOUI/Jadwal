@@ -82,5 +82,27 @@ Journal des décisions structurantes. Chaque entrée : contexte, décision, cons
 - Couleurs de matières du jeu de démonstration réalignées sur une palette catégorielle mate. Ce sont des **données** (`matiere.couleur`), pas des tokens : chaque établissement reste libre de les changer.
 - Conventions et vocabulaire : [DESIGN-SYSTEM.md](DESIGN-SYSTEM.md). Les échelles typographiques et de rayons y sont dupliquées en valeurs littérales dans `@theme` (Tailwind refuse une auto-référence `var()`) — à garder en phase lors d'une mise à jour du DS.
 
+## D-018 — Aucun secret n'a de valeur de repli (correctif de sécurité)
+**Contexte.** Une revue de sécurité (6 audits par domaine, puis un filtrage adversarial par constat) a retenu trois constats **HIGH**, tous de la même famille : des secrets par défaut codés en dur.
+- `application.yml` : `secret: ${JADWAL_JWT_SECRET:jadwal-dev-secret-change-me-0123456789abcdef}`
+- `application.yml` : `password: ${JADWAL_ADMIN_PASSWORD:admin123}`
+- `docker-compose.yml` : `POSTGRES_PASSWORD:-jadwal`, plus le port 8080 publié sur toutes les interfaces
+
+**Le facteur aggravant :** le dépôt GitHub est **public**. Le secret de signature HS256 était donc lisible par n'importe qui, et il faisait 44 octets — donc accepté sans erreur par `Keys.hmacShaKeyFor`, si bien que l'application démarrait normalement sans jamais signaler que sa clé de production était une valeur publique. Le README ne documentait que `docker compose up --build -d`, sans mention du secret.
+
+**Chemin d'attaque (vérifié, puis rejoué après correctif).** Un attaquant sans compte forge hors ligne un jeton `{"role":"SUPER_ADMIN"}` ou `{"role":"DIRECTEUR","etablissementId":N}` signé avec le secret public, l'envoie au backend, et obtient la lecture et l'écriture sur **n'importe quel établissement** — en incrémentant `etablissementId` il balaie tout le parc. `JwtAuthFilter` ne consulte pas la base : le rôle et l'établissement viennent des seuls claims.
+
+**Décision.** Aucun secret n'a de valeur de repli, et le système refuse de démarrer plutôt que de fonctionner avec un secret faible :
+1. `application.yml` : `${JADWAL_JWT_SECRET}` et `${JADWAL_ADMIN_PASSWORD}` sans repli — le contexte Spring échoue si la variable manque.
+2. `JwtService.verifierSecret` : refus au démarrage si le secret est absent, fait moins de 32 octets, ou figure dans la liste des valeurs ayant circulé publiquement.
+3. `AmorcageDonnees.verifierMotDePasseAdmin` : idem, 12 caractères minimum et liste noire.
+4. `docker-compose.yml` : syntaxe `${VAR:?message}` — `docker compose up` échoue avec un message actionnable ; ports de postgres, redis, minio et **du backend** liés à `127.0.0.1` (le frontend joint le backend par le réseau Docker interne, indépendamment des ports publiés).
+5. `.env.example` : marqueurs `A_REMPLACER` inutilisables et commandes de génération (`openssl rand -base64 48`).
+6. Tests de non-régression : `SecretsDemarrageTest`, `MotDePasseAdminTest`.
+
+**Conséquence à assumer.** L'ancien secret et l'ancien mot de passe admin sont dans l'historique d'un dépôt public : ils sont **définitivement brûlés**. Ils ne sont plus utilisables (liste noire), mais toute instance déployée avec ces valeurs doit être considérée comme compromise — rotation des secrets et audit des comptes `SUPER_ADMIN`/`DIRECTEUR` existants.
+
+**Écartés par le filtrage** (faits exacts, mais hors périmètre « vulnérabilité concrète ») : `secure: false` sur le cookie de session (relève du déploiement TLS), et l'absence de révocation de session après suspension d'un établissement (fenêtre bornée par le TTL de 12 h, propre au choix d'un JWT sans état). Les deux restent au backlog de durcissement.
+
 ## D-011 — Identifiants de contraintes = codes du cahier
 **Décision.** Chaque contrainte Timefold est nommée par le code exact de sa règle (`asConstraint("B-01")`). Les pondérations par établissement (`I-01`, table `ponderation`) et l'analyse de score (`I-06`, écran d'analyse) sont ainsi directement traçables vers `docs/REGLES.md`.

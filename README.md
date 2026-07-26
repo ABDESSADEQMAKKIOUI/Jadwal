@@ -12,11 +12,35 @@ une contrainte du solveur **et** jusqu'à un test unitaire.
 
 ## Démarrage
 
+**1. Générer les secrets.** Aucun secret n'a de valeur par défaut : le démarrage échoue si l'un
+manque, est trop court, ou reprend une valeur ayant circulé publiquement. C'est volontaire — ce
+dépôt est public, un secret par défaut y serait lisible par tout le monde et permettrait de forger
+un jeton d'administration (voir [docs/DECISIONS.md](docs/DECISIONS.md) D-018).
+
+```bash
+cp .env.example .env
+```
+
+Puis remplacer chaque `A_REMPLACER` dans `.env` :
+
+```bash
+openssl rand -base64 48   # JADWAL_JWT_SECRET  (32 octets minimum)
+openssl rand -base64 24   # POSTGRES_PASSWORD, MINIO_ROOT_PASSWORD
+```
+
+`JADWAL_ADMIN_PASSWORD` est le mot de passe du compte `admin@jadwal.ma` : 12 caractères minimum.
+`.env` est ignoré par git et ne doit jamais être committé.
+
+**2. Démarrer.**
+
 ```bash
 docker compose up --build -d
 ```
 
 Le premier build peut prendre plusieurs minutes (téléchargement des dépendances Maven et npm).
+
+> Seul le port du frontend (3000) est exposé sur le réseau. La base, Redis, MinIO et l'API sont
+> liés à `127.0.0.1` : joignables depuis la machine pour le développement, jamais depuis le réseau.
 
 ### Démarrer avec le jeu de démonstration
 
@@ -24,12 +48,13 @@ Pour explorer le moteur immédiatement, avec un collège complet déjà paramét
 dédoublées, 10 matières, 11 salles, 14 enseignants dont 2 mixtes, une barrette, la répartition de
 service) :
 
-```bash
-JADWAL_DEMO=true docker compose up --build -d
-```
+Mettre `JADWAL_DEMO=true` dans `.env`, puis démarrer normalement.
 
 Connexion : `demo@jadwal.ma` / `demo123`. Puis **Génération → Vérifier la faisabilité → Lancer la
 génération** : l'emploi du temps des 4 classes est construit en 1 à 2 minutes.
+
+> Ce jeu crée un compte à mot de passe faible et le backend l'annonce par un avertissement au
+> démarrage. **À réserver au développement** — ne jamais activer `JADWAL_DEMO` en production.
 
 ## URLs
 

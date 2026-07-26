@@ -1,14 +1,22 @@
+# Les secrets n'ont AUCUNE valeur de repli : la syntaxe ${VAR:?message} fait échouer
+# `docker compose up` si la variable est absente. Un repli codé en dur dans un dépôt
+# public équivaut à publier la clé de production.
+#
+# Les services d'infrastructure et le backend sont liés à 127.0.0.1 : joignables depuis
+# la machine (développement, diagnostic) mais jamais depuis le réseau. Seul le frontend
+# est exposé. Le backend reste atteignable par le frontend via le réseau Docker interne
+# (http://backend:8080), qui ne dépend pas des ports publiés.
 services:
   postgres:
     image: postgres:17-alpine
     environment:
       POSTGRES_DB: jadwal
       POSTGRES_USER: jadwal
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-jadwal}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?definir POSTGRES_PASSWORD (voir .env.example)}
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U jadwal -d jadwal"]
       interval: 5s
@@ -21,7 +29,7 @@ services:
     volumes:
       - redisdata:/data
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -33,11 +41,11 @@ services:
     image: minio/minio
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?definir MINIO_ROOT_USER (voir .env.example)}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?definir MINIO_ROOT_PASSWORD (voir .env.example)}
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
     volumes:
       - miniodata:/data
     healthcheck:
@@ -49,16 +57,16 @@ services:
   backend:
     build: ./backend
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/jadwal
       SPRING_DATASOURCE_USERNAME: jadwal
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-jadwal}
-      JADWAL_JWT_SECRET: ${JADWAL_JWT_SECRET:-jadwal-dev-secret-change-me-0123456789abcdef}
-      JADWAL_ADMIN_PASSWORD: ${JADWAL_ADMIN_PASSWORD:-admin123}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?definir POSTGRES_PASSWORD (voir .env.example)}
+      JADWAL_JWT_SECRET: ${JADWAL_JWT_SECRET:?generer un secret - openssl rand -base64 48}
+      JADWAL_ADMIN_PASSWORD: ${JADWAL_ADMIN_PASSWORD:?definir un mot de passe admin fort (12 caracteres minimum)}
       JADWAL_DEMO: ${JADWAL_DEMO:-false}
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health || exit 1"]
