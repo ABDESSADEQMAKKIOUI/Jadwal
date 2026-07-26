@@ -1,25 +1,53 @@
 'use client';
 
 import { useDraggable } from '@dnd-kit/core';
-import { useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import type { Seance, VuePlanning } from '@/lib/types-planning';
 
-const COULEUR_DEFAUT = '#4f46e5';
+/** Couleur de repli quand la matière n'a pas de couleur (maquette : var(--color-primary)). */
+const COULEUR_DEFAUT = 'var(--color-primary)';
 
-/** Icône cadenas (séance verrouillée, I-03). */
+const LARGEUR_MENU = 184;
+
+/** Icône cadenas de la maquette (séance verrouillée, I-03). */
 function IconeCadenas() {
   return (
     <svg
-      className="h-3 w-3 shrink-0 text-neutral-500"
-      viewBox="0 0 20 20"
-      fill="currentColor"
+      width="11"
+      height="11"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ color: 'var(--text-muted)', flex: 'none' }}
       aria-label="Séance verrouillée"
     >
-      <path
-        fillRule="evenodd"
-        d="M10 2a4 4 0 0 0-4 4v2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1V6a4 4 0 0 0-4-4Zm2 6V6a2 2 0 1 0-4 0v2h4Z"
-        clipRule="evenodd"
-      />
+      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  );
+}
+
+/** Icône « … » de la maquette (ouverture du menu de séance). */
+function IconeActions() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ display: 'block' }}
+    >
+      <circle cx="12" cy="12" r="1" />
+      <circle cx="19" cy="12" r="1" />
+      <circle cx="5" cy="12" r="1" />
     </svg>
   );
 }
@@ -34,8 +62,29 @@ function BoutonMenu({
   return (
     <button
       type="button"
+      role="menuitem"
       onClick={onClick}
-      className="block w-full px-3 py-1.5 text-left text-xs text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
+      style={{
+        display: 'block',
+        width: '100%',
+        border: 0,
+        background: 'transparent',
+        padding: '7px 12px',
+        textAlign: 'left',
+        fontSize: 'var(--text-sm)',
+        fontFamily: 'var(--font-sans)',
+        color: 'var(--text-body)',
+        cursor: 'pointer',
+        transition: 'background var(--duration-fast) var(--ease-standard)',
+      }}
+      onMouseEnter={(evenement) => {
+        evenement.currentTarget.style.background = 'var(--surface-hover)';
+        evenement.currentTarget.style.color = 'var(--text-strong)';
+      }}
+      onMouseLeave={(evenement) => {
+        evenement.currentTarget.style.background = 'transparent';
+        evenement.currentTarget.style.color = 'var(--text-body)';
+      }}
     >
       {children}
     </button>
@@ -43,8 +92,12 @@ function BoutonMenu({
 }
 
 /**
- * Bloc séance positionné dans la grille hebdomadaire.
+ * Bloc séance positionné dans la grille hebdomadaire (rendu de la maquette).
  * Draggable (désactivé si verrouillée) + menu d'actions (verrou, salle, enseignant).
+ *
+ * Le bloc garde le `overflow:hidden` de la maquette : le menu est donc rendu
+ * dans un portail en position fixe, ce qui l'empêche d'être rogné par le bloc
+ * ou par le défilement horizontal de la grille.
  */
 export function SeanceCard({
   seance,
@@ -61,12 +114,35 @@ export function SeanceCard({
   onChangerSalle: (seance: Seance) => void;
   onChangerEnseignant: (seance: Seance) => void;
 }) {
-  const [menuOuvert, setMenuOuvert] = useState(false);
+  const [menu, setMenu] = useState<{ gauche: number; haut: number } | null>(
+    null,
+  );
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
       id: `seance-${seance.id}`,
       disabled: seance.verrouillee,
     });
+
+  // Le menu est positionné en coordonnées écran : on le referme si la page bouge.
+  useEffect(() => {
+    if (menu === null) return;
+    const fermer = () => setMenu(null);
+    window.addEventListener('scroll', fermer, true);
+    window.addEventListener('resize', fermer);
+    return () => {
+      window.removeEventListener('scroll', fermer, true);
+      window.removeEventListener('resize', fermer);
+    };
+  }, [menu]);
+
+  function ouvrirMenu(gaucheSouhaitee: number, hautSouhaite: number) {
+    const gauche = Math.max(
+      8,
+      Math.min(gaucheSouhaitee, window.innerWidth - LARGEUR_MENU - 8),
+    );
+    const haut = Math.max(8, Math.min(hautSouhaite, window.innerHeight - 148));
+    setMenu({ gauche, haut });
+  }
 
   const couleur =
     seance.couleur !== null && seance.couleur.length > 0
@@ -92,29 +168,85 @@ export function SeanceCard({
       {...attributes}
       onContextMenu={(evenement) => {
         evenement.preventDefault();
-        setMenuOuvert((ouvert) => !ouvert);
+        if (menu !== null) {
+          setMenu(null);
+          return;
+        }
+        ouvrirMenu(evenement.clientX, evenement.clientY);
       }}
       style={{
+        // Apparence de la maquette (s.style), la position en grille vient du parent.
+        position: 'relative',
+        margin: 3,
+        display: 'flex',
+        minHeight: 0,
+        flexDirection: 'column',
+        gap: 1,
+        overflow: 'hidden',
+        borderRadius: 'var(--radius-sm)',
+        border: '1px solid var(--border-subtle)',
+        borderLeft: `3px solid ${couleur}`,
+        background: 'var(--surface-card)',
+        boxShadow: 'var(--shadow-xs)',
+        padding: '6px 8px',
+        lineHeight: 1.3,
+        cursor: seance.verrouillee ? 'default' : 'grab',
         ...style,
-        borderLeftColor: couleur,
-        backgroundColor: `${couleur}1a`,
+        zIndex: isDragging ? 40 : 10,
         transform:
           transform !== null
             ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
             : undefined,
-        zIndex: isDragging ? 40 : menuOuvert ? 30 : 10,
+        ...(isDragging
+          ? {
+              boxShadow: 'var(--shadow-lg)',
+              opacity: 0.92,
+              cursor: 'grabbing',
+            }
+          : {}),
       }}
-      className={`relative m-0.5 flex min-h-0 flex-col overflow-visible rounded-md border border-neutral-200 border-l-4 bg-white p-1.5 text-[11px] leading-tight shadow-sm ${
-        seance.verrouillee ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'
-      } ${isDragging ? 'opacity-90 shadow-lg ring-2 ring-teal-300' : ''}`}
     >
-      <div className="flex items-start justify-between gap-1">
-        <p className="truncate font-semibold text-neutral-900">
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: 4,
+        }}
+      >
+        <p
+          style={{
+            margin: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            fontSize: 'var(--text-xs)',
+            fontWeight: 'var(--weight-semibold)',
+            color: 'var(--text-strong)',
+          }}
+        >
           {seance.matiereLibelle}
         </p>
-        <span className="flex shrink-0 items-center gap-1">
+        <span
+          style={{
+            display: 'flex',
+            flex: 'none',
+            alignItems: 'center',
+            gap: 4,
+          }}
+        >
           {seance.semaine !== 'TOUTES' && (
-            <span className="rounded bg-teal-100 px-1 text-[9px] font-bold text-teal-700">
+            <span
+              style={{
+                borderRadius: 'var(--radius-xs)',
+                background: 'var(--surface-card)',
+                border: '1px solid var(--border-subtle)',
+                padding: '0 4px',
+                fontSize: 9,
+                fontWeight: 'var(--weight-bold)',
+                color: 'var(--text-muted)',
+              }}
+            >
               {seance.semaine}
             </span>
           )}
@@ -122,69 +254,111 @@ export function SeanceCard({
           <button
             type="button"
             aria-label="Actions sur la séance"
+            aria-haspopup="menu"
+            aria-expanded={menu !== null}
             onPointerDown={(evenement) => evenement.stopPropagation()}
             onClick={(evenement) => {
               evenement.stopPropagation();
-              setMenuOuvert((ouvert) => !ouvert);
+              if (menu !== null) {
+                setMenu(null);
+                return;
+              }
+              const rectangle = evenement.currentTarget.getBoundingClientRect();
+              ouvrirMenu(rectangle.right - LARGEUR_MENU, rectangle.bottom + 6);
             }}
-            className="rounded p-0.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700"
+            style={{
+              border: 0,
+              background: 'transparent',
+              padding: 0,
+              color: 'var(--text-subtle)',
+              cursor: 'pointer',
+              lineHeight: 0,
+            }}
           >
-            <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M10 6a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm0 5.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm0 5.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z" />
-            </svg>
+            <IconeActions />
           </button>
         </span>
       </div>
       {lignes.map((ligne, index) => (
-        <p key={`${index}-${ligne}`} className="truncate text-neutral-600">
+        <p
+          key={`${index}-${ligne}`}
+          style={{
+            margin: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            fontSize: 'var(--text-2xs)',
+            color: 'var(--text-muted)',
+          }}
+        >
           {ligne}
         </p>
       ))}
 
-      {menuOuvert && (
-        <div
-          onPointerDown={(evenement) => evenement.stopPropagation()}
-          onContextMenu={(evenement) => {
-            evenement.preventDefault();
-            evenement.stopPropagation();
-          }}
-        >
+      {menu !== null &&
+        createPortal(
           <div
-            className="fixed inset-0 z-40 cursor-default"
-            aria-hidden="true"
-            onClick={(evenement) => {
+            onPointerDown={(evenement) => evenement.stopPropagation()}
+            onContextMenu={(evenement) => {
+              evenement.preventDefault();
               evenement.stopPropagation();
-              setMenuOuvert(false);
             }}
-          />
-          <div className="absolute right-0 top-6 z-50 w-44 rounded-lg border border-neutral-200 bg-white py-1 shadow-lg">
-            <BoutonMenu
-              onClick={() => {
-                setMenuOuvert(false);
-                onBasculerVerrou(seance);
+          >
+            <div
+              aria-hidden="true"
+              onClick={() => setMenu(null)}
+              style={{
+                position: 'fixed',
+                inset: 0,
+                zIndex: 'var(--z-dropdown)',
+                cursor: 'default',
+              }}
+            />
+            <div
+              role="menu"
+              aria-label={`Actions sur la séance ${seance.matiereLibelle}`}
+              style={{
+                position: 'fixed',
+                left: menu.gauche,
+                top: menu.haut,
+                width: LARGEUR_MENU,
+                zIndex: 'calc(var(--z-dropdown) + 1)',
+                background: 'var(--surface-card)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-sm)',
+                boxShadow: 'var(--shadow-lg)',
+                padding: '4px 0',
+                overflow: 'hidden',
               }}
             >
-              {seance.verrouillee ? 'Déverrouiller' : 'Verrouiller'}
-            </BoutonMenu>
-            <BoutonMenu
-              onClick={() => {
-                setMenuOuvert(false);
-                onChangerSalle(seance);
-              }}
-            >
-              Changer de salle
-            </BoutonMenu>
-            <BoutonMenu
-              onClick={() => {
-                setMenuOuvert(false);
-                onChangerEnseignant(seance);
-              }}
-            >
-              Changer d’enseignant
-            </BoutonMenu>
-          </div>
-        </div>
-      )}
+              <BoutonMenu
+                onClick={() => {
+                  setMenu(null);
+                  onBasculerVerrou(seance);
+                }}
+              >
+                {seance.verrouillee ? 'Déverrouiller' : 'Verrouiller'}
+              </BoutonMenu>
+              <BoutonMenu
+                onClick={() => {
+                  setMenu(null);
+                  onChangerSalle(seance);
+                }}
+              >
+                Changer de salle
+              </BoutonMenu>
+              <BoutonMenu
+                onClick={() => {
+                  setMenu(null);
+                  onChangerEnseignant(seance);
+                }}
+              >
+                Changer d’enseignant
+              </BoutonMenu>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

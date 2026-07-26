@@ -29,8 +29,8 @@ export default function PageTableauDeBordAdmin() {
 
   return (
     <div>
-      <h1 className="text-xl font-semibold text-neutral-900">Tableau de bord</h1>
-      <p className="mt-1 text-sm text-neutral-500">
+      {/* Le titre de page est rendu par la barre supérieure d'AppShell. */}
+      <p className="text-sm text-neutral-500">
         Vue d’ensemble de la plateforme JADWAL.
       </p>
 

@@ -1,0 +1,10 @@
+/*
+ * Règles globales du chrome, reprises telles quelles de la maquette
+ * « JADWAL Ynexis » (bloc <style> du document).
+ * Importé par components/app-shell.tsx, qui enveloppe tous les écrans
+ * admin et école : la règle s'applique donc partout où la maquette l'attend.
+ * Les valeurs viennent des tokens (app/tokens/*.css), jamais en dur.
+ */
+::placeholder {
+  color: var(--text-subtle);
+}

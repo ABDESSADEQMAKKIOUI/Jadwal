@@ -3,12 +3,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { apiFetch } from '@/lib/api';
-import {
-  apiFetchDetaille,
-  ErreurApi,
-  extraireRapport,
-} from '@/lib/api-planning';
+import { apiFetchDetaille, ErreurApi, extraireRapport } from '@/lib/api-planning';
 import type {
   AnalyseScore,
   FaisabiliteRapport,
@@ -16,14 +13,10 @@ import type {
   StatutFaisabilite,
   StatutGeneration,
 } from '@/lib/types-planning';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import type { BadgeTone } from '@/components/ds';
+import { Alert, Badge, Button, Card, EmptyState, Select } from '@/components/ds';
 import { Dialog } from '@/components/ui/dialog';
-import { EmptyState } from '@/components/ui/empty-state';
-import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
-import { ChargementPage, Spinner } from '@/components/ui/spinner';
-import { Table, TBody, Td, Th, THead, Tr } from '@/components/ui/table';
+import { ChargementPage } from '@/components/ui/spinner';
 
 const DUREES = [
   { valeur: 30, libelle: '30 secondes' },
@@ -33,46 +26,96 @@ const DUREES = [
   { valeur: 600, libelle: '10 minutes' },
 ];
 
-const LIBELLES_STATUT: Record<StatutGeneration, string> = {
-  EN_COURS: 'En cours',
-  TERMINEE: 'Terminée',
-  INFAISABLE: 'Infaisable',
-  ECHEC: 'Échec',
-  ARRETEE: 'Arrêtée',
+const BADGE_STATUT: Record<StatutGeneration, { tone: BadgeTone; libelle: string }> = {
+  EN_COURS: { tone: 'active', libelle: 'EN COURS' },
+  TERMINEE: { tone: 'success', libelle: 'TERMINÉE' },
+  INFAISABLE: { tone: 'danger', libelle: 'INFAISABLE' },
+  ECHEC: { tone: 'danger', libelle: 'ÉCHEC' },
+  ARRETEE: { tone: 'neutral', libelle: 'ARRÊTÉE' },
 };
 
-const COULEURS_STATUT: Record<StatutGeneration, string> = {
-  EN_COURS: 'bg-teal-100 text-teal-800',
-  TERMINEE: 'bg-green-100 text-green-800',
-  INFAISABLE: 'bg-red-100 text-red-700',
-  ECHEC: 'bg-red-100 text-red-700',
-  ARRETEE: 'bg-neutral-100 text-neutral-600',
+const PASTILLE_FAISABILITE: Record<StatutFaisabilite, string> = {
+  OK: 'var(--status-success-solid)',
+  AVERTISSEMENT: 'var(--status-warning-solid)',
+  ECHEC: 'var(--status-danger-solid)',
 };
 
-function BadgeGeneration({ statut }: { statut: StatutGeneration }) {
-  return (
-    <span
-      className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${COULEURS_STATUT[statut] ?? 'bg-neutral-100 text-neutral-600'}`}
-    >
-      {LIBELLES_STATUT[statut] ?? statut}
-    </span>
-  );
-}
+const ALERTE_FAISABILITE: Record<
+  StatutFaisabilite,
+  { tone: 'success' | 'warning' | 'danger'; message: string }
+> = {
+  OK: { tone: 'success', message: 'Toutes les vérifications sont passées.' },
+  AVERTISSEMENT: {
+    tone: 'warning',
+    message: 'Des avertissements ont été détectés : la génération reste possible.',
+  },
+  ECHEC: {
+    tone: 'danger',
+    message:
+      'Faisabilité en échec : corrigez les points ci-dessous avant de lancer une génération.',
+  },
+};
 
-function PastilleFaisabilite({ statut }: { statut: StatutFaisabilite }) {
-  const couleur =
-    statut === 'OK'
-      ? 'bg-green-500'
-      : statut === 'AVERTISSEMENT'
-        ? 'bg-amber-500'
-        : 'bg-red-500';
-  return (
-    <span
-      className={`mt-1 inline-block h-2.5 w-2.5 shrink-0 rounded-full ${couleur}`}
-      aria-label={statut}
-    />
-  );
-}
+/* Styles repris mot pour mot de la maquette « JADWAL Ynexis ». */
+
+const TITRE_CARTE: CSSProperties = {
+  margin: 0,
+  fontSize: 'var(--type-card-title-size)',
+  fontWeight: 'var(--type-card-title-weight)',
+  color: 'var(--text-strong)',
+};
+
+const ENTETE_CARTE: CSSProperties = {
+  padding: '18px 24px',
+  borderBottom: '1px solid var(--border-subtle)',
+};
+
+const ETIQUETTE_TUILE: CSSProperties = {
+  margin: 0,
+  fontSize: 'var(--text-2xs)',
+  fontWeight: 'var(--weight-semibold)',
+  letterSpacing: 'var(--tracking-caps)',
+  textTransform: 'uppercase',
+  color: 'var(--text-muted)',
+};
+
+const TH: CSSProperties = {
+  padding: '10px 14px',
+  background: 'var(--neutral-50)',
+  borderBottom: '1px solid var(--border-subtle)',
+  fontSize: 'var(--text-2xs)',
+  fontWeight: 'var(--weight-semibold)',
+  letterSpacing: 'var(--tracking-caps)',
+  textTransform: 'uppercase',
+  color: 'var(--text-muted)',
+  whiteSpace: 'nowrap',
+  textAlign: 'left',
+};
+
+const TH_RIGHT: CSSProperties = { ...TH, textAlign: 'right' };
+
+const TD: CSSProperties = {
+  padding: '0 14px',
+  height: 'var(--row-height)',
+  borderBottom: '1px solid var(--neutral-100)',
+  color: 'var(--text-body)',
+  whiteSpace: 'nowrap',
+  textAlign: 'left',
+};
+
+const TD_RIGHT: CSSProperties = {
+  ...TD,
+  textAlign: 'right',
+  fontVariantNumeric: 'tabular-nums',
+};
+
+const TD_MONO: CSSProperties = {
+  ...TD,
+  fontFamily: 'var(--font-mono)',
+  fontSize: 'var(--text-xs)',
+  fontVariantNumeric: 'tabular-nums',
+  color: 'var(--text-muted)',
+};
 
 /** Extrait le nombre de conflits durs d'un score type "-3hard/-120soft". */
 function conflitsDurs(score: string | null): number | null {
@@ -99,6 +142,50 @@ function formatDateHeure(valeur: string): string {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+/** Pastille de statut d'un bilan de faisabilité (H-01…H-06). */
+function PastilleFaisabilite({ statut }: { statut: StatutFaisabilite }) {
+  return (
+    <span
+      aria-label={statut}
+      style={{
+        marginTop: '5px',
+        display: 'inline-block',
+        width: '8px',
+        height: '8px',
+        flex: 'none',
+        borderRadius: 'var(--radius-pill)',
+        background: PASTILLE_FAISABILITE[statut],
+      }}
+    />
+  );
+}
+
+/** Résumé du rapport affiché en pastille dans l'en-tête de la carte Faisabilité. */
+function badgeFaisabilite(
+  rapport: FaisabiliteRapport,
+): { tone: BadgeTone; libelle: string } {
+  const echecs = rapport.bilans.filter((bilan) => bilan.statut === 'ECHEC').length;
+  const avertissements = rapport.bilans.filter(
+    (bilan) => bilan.statut === 'AVERTISSEMENT',
+  ).length;
+  if (rapport.global === 'ECHEC') {
+    return {
+      tone: 'danger',
+      libelle: `${echecs} ${echecs > 1 ? 'ERREURS' : 'ERREUR'}`,
+    };
+  }
+  if (rapport.global === 'AVERTISSEMENT') {
+    return {
+      tone: 'warning',
+      libelle: `${avertissements} ${avertissements > 1 ? 'AVERTISSEMENTS' : 'AVERTISSEMENT'}`,
+    };
+  }
+  return {
+    tone: 'success',
+    libelle: `${rapport.bilans.length} ${rapport.bilans.length > 1 ? 'CONTRÔLES OK' : 'CONTRÔLE OK'}`,
+  };
 }
 
 interface Progression {
@@ -257,314 +344,520 @@ export default function PageGeneration() {
   const generations = requeteGenerations.data ?? [];
   const faisabiliteEnEchec = rapport !== null && rapport.global === 'ECHEC';
   const nbDurs = conflitsDurs(progression?.score ?? null);
+  const enCours = suiviId !== null;
+
+  // Durée de référence de la génération suivie (peut différer du sélecteur
+  // après un rechargement de page qui reprend un suivi en cours).
+  const generationSuivie =
+    generations.find((generation) => generation.id === suiviId) ?? null;
+  const dureeSuivie = generationSuivie?.dureeMaxSecondes ?? dureeMax;
+  const secondesEcoulees = progression?.tempsEcouleSecondes ?? null;
+  const pourcentage =
+    secondesEcoulees === null
+      ? 0
+      : Math.min(100, Math.round((secondesEcoulees / dureeSuivie) * 100));
+
+  // Tuile « Conflits durs » : verte à 0, rouge dès qu'une contrainte dure est violée.
+  const tuileConflits =
+    nbDurs === null
+      ? { bg: 'var(--surface-sunken)', fg: 'var(--text-muted)' }
+      : nbDurs > 0
+        ? { bg: 'var(--status-danger-bg)', fg: 'var(--status-danger-fg)' }
+        : { bg: 'var(--status-success-bg)', fg: 'var(--status-success-fg)' };
+
+  const badge = rapport === null ? null : badgeFaisabilite(rapport);
+  const alerteGlobale = rapport === null ? null : ALERTE_FAISABILITE[rapport.global];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-neutral-900">Génération</h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          Vérifiez la faisabilité puis lancez la génération automatique de
-          l’emploi du temps.
-        </p>
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <p
+        style={{
+          margin: 0,
+          fontSize: 'var(--text-base)',
+          color: 'var(--text-muted)',
+          maxWidth: '62ch',
+        }}
+      >
+        Vérifiez la faisabilité puis lancez la génération automatique de l’emploi du
+        temps.
+      </p>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card
-          titre="Faisabilité"
-          actions={
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 400px',
+          gap: '16px',
+          alignItems: 'start',
+        }}
+      >
+        {/* ---------- Faisabilité (H-01…H-06) ---------- */}
+        <Card padded={false}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '16px',
+              padding: '18px 24px',
+              borderBottom: '1px solid var(--border-subtle)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <h3 style={TITRE_CARTE}>Faisabilité</h3>
+              {badge !== null && (
+                <Badge tone={badge.tone} dot size="sm">
+                  {badge.libelle}
+                </Badge>
+              )}
+            </div>
             <Button
-              taille="sm"
-              variante="secondary"
-              disabled={verifierFaisabilite.isPending}
+              variant="secondary"
+              size="sm"
+              loading={verifierFaisabilite.isPending}
               onClick={() => verifierFaisabilite.mutate()}
             >
-              {verifierFaisabilite.isPending
-                ? 'Vérification…'
-                : 'Vérifier la faisabilité'}
+              {rapport === null ? 'Vérifier la faisabilité' : 'Revérifier'}
             </Button>
-          }
-        >
-          {verifierFaisabilite.isPending ? (
-            <ChargementPage />
-          ) : verifierFaisabilite.error !== null ? (
-            <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {verifierFaisabilite.error.message}
-            </p>
-          ) : rapport === null ? (
-            <EmptyState message="Lancez une vérification pour contrôler les données avant génération." />
-          ) : (
-            <div className="space-y-3">
-              <div
-                className={`rounded-lg px-4 py-2.5 text-sm font-medium ${
-                  rapport.global === 'OK'
-                    ? 'bg-green-50 text-green-800'
-                    : rapport.global === 'AVERTISSEMENT'
-                      ? 'bg-amber-50 text-amber-800'
-                      : 'bg-red-50 text-red-800'
-                }`}
-              >
-                {rapport.global === 'OK'
-                  ? 'Toutes les vérifications sont passées.'
-                  : rapport.global === 'AVERTISSEMENT'
-                    ? 'Des avertissements ont été détectés : la génération reste possible.'
-                    : 'Faisabilité en échec : corrigez les points ci-dessous avant de lancer une génération.'}
-              </div>
-              <ul className="space-y-2">
-                {rapport.bilans.map((bilan) => (
-                  <li
-                    key={bilan.code}
-                    className="flex items-start gap-3 rounded-lg border border-neutral-100 px-3 py-2"
-                  >
-                    <PastilleFaisabilite statut={bilan.statut} />
-                    <div className="min-w-0">
-                      <p className="text-sm text-neutral-900">
-                        <span className="mr-2 font-mono text-xs font-semibold text-neutral-500">
-                          {bilan.code}
-                        </span>
-                        {bilan.libelle}
-                      </p>
-                      <p className="mt-0.5 text-sm font-medium text-neutral-700">
-                        {bilan.message}
-                      </p>
-                      {bilan.details !== null && bilan.details.length > 0 && (
-                        <p className="mt-0.5 text-xs text-neutral-500">
-                          {bilan.details}
+          </div>
+          <div style={{ padding: '16px 24px 24px' }}>
+            {verifierFaisabilite.isPending ? (
+              <ChargementPage />
+            ) : verifierFaisabilite.error !== null ? (
+              <Alert tone="danger" title="La vérification a échoué">
+                {verifierFaisabilite.error.message}
+              </Alert>
+            ) : rapport === null || alerteGlobale === null ? (
+              <EmptyState
+                variant="gated"
+                title="Faisabilité non vérifiée"
+                description="Lancez une vérification pour contrôler les données avant génération."
+              />
+            ) : (
+              <>
+                <Alert tone={alerteGlobale.tone}>{alerteGlobale.message}</Alert>
+                <ul
+                  style={{
+                    margin: '16px 0 0',
+                    padding: 0,
+                    listStyle: 'none',
+                    display: 'flex',
+                    flexDirection: 'column',
+                  }}
+                >
+                  {rapport.bilans.map((bilan) => (
+                    <li
+                      key={bilan.code}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '12px',
+                        padding: '14px 0',
+                        borderTop: '1px solid var(--neutral-100)',
+                      }}
+                    >
+                      <PastilleFaisabilite statut={bilan.statut} />
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <p
+                          style={{
+                            margin: 0,
+                            fontSize: 'var(--text-base)',
+                            color: 'var(--text-strong)',
+                          }}
+                        >
+                          <span
+                            style={{
+                              marginRight: '8px',
+                              fontFamily: 'var(--font-mono)',
+                              fontSize: 'var(--text-xs)',
+                              fontWeight: 'var(--weight-semibold)',
+                              color: 'var(--text-subtle)',
+                            }}
+                          >
+                            {bilan.code}
+                          </span>
+                          {bilan.libelle}
                         </p>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+                        <p
+                          style={{
+                            margin: '4px 0 0',
+                            fontSize: 'var(--text-sm)',
+                            color: 'var(--text-body)',
+                          }}
+                        >
+                          {bilan.message}
+                        </p>
+                        {bilan.details !== null && bilan.details.length > 0 && (
+                          <p
+                            style={{
+                              margin: '2px 0 0',
+                              fontSize: 'var(--text-xs)',
+                              color: 'var(--text-muted)',
+                            }}
+                          >
+                            {bilan.details}
+                          </p>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
         </Card>
 
-        <div className="space-y-6">
-          <Card titre="Lancer une génération">
-            {suiviId === null ? (
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="duree-max">Durée maximale de calcul</Label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* ---------- Lancement / suivi en direct ---------- */}
+          <Card padded={false}>
+            <div style={ENTETE_CARTE}>
+              <h3 style={TITRE_CARTE}>
+                {enCours ? 'Génération en cours' : 'Lancer une génération'}
+              </h3>
+            </div>
+            <div style={{ padding: '20px 24px 24px' }}>
+              {enCours && suiviId !== null ? (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        display: 'inline-block',
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: 'var(--radius-pill)',
+                        background: 'var(--status-active-solid)',
+                      }}
+                    />
+                    <span
+                      style={{
+                        fontSize: 'var(--text-base)',
+                        fontWeight: 'var(--weight-medium)',
+                        color: 'var(--text-strong)',
+                      }}
+                    >
+                      Recherche de solution…
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      marginTop: '14px',
+                      height: '6px',
+                      borderRadius: 'var(--radius-pill)',
+                      background: 'var(--surface-sunken)',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'block',
+                        height: '100%',
+                        width: `${pourcentage}%`,
+                        borderRadius: 'var(--radius-pill)',
+                        background: 'var(--color-primary)',
+                      }}
+                    />
+                  </div>
+                  <p
+                    style={{
+                      margin: '8px 0 0',
+                      fontSize: 'var(--text-xs)',
+                      color: 'var(--text-muted)',
+                      fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >
+                    {secondesEcoulees === null
+                      ? 'Démarrage…'
+                      : `${formatSecondes(secondesEcoulees)} écoulées`}{' '}
+                    · {formatSecondes(dureeSuivie)} max
+                  </p>
+
+                  <div
+                    style={{
+                      marginTop: '18px',
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: '10px',
+                    }}
+                  >
+                    <div
+                      style={{
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--surface-sunken)',
+                        padding: '12px',
+                      }}
+                    >
+                      <p style={ETIQUETTE_TUILE}>Score</p>
+                      <p
+                        style={{
+                          margin: '6px 0 0',
+                          fontFamily: 'var(--font-mono)',
+                          fontSize: 'var(--text-base)',
+                          fontWeight: 'var(--weight-semibold)',
+                          color: 'var(--text-strong)',
+                        }}
+                      >
+                        {progression?.score ?? '—'}
+                      </p>
+                    </div>
+                    <div
+                      style={{
+                        borderRadius: 'var(--radius-sm)',
+                        background: tuileConflits.bg,
+                        padding: '12px',
+                      }}
+                    >
+                      <p style={{ ...ETIQUETTE_TUILE, color: tuileConflits.fg }}>
+                        Conflits durs
+                      </p>
+                      <p
+                        style={{
+                          margin: '6px 0 0',
+                          fontSize: 'var(--text-base)',
+                          fontWeight: 'var(--weight-semibold)',
+                          fontVariantNumeric: 'tabular-nums',
+                          color: tuileConflits.fg,
+                        }}
+                      >
+                        {nbDurs ?? '—'}
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: '16px' }}>
+                    <Button
+                      variant="danger"
+                      size="md"
+                      fullWidth
+                      loading={arreterGeneration.isPending}
+                      onClick={() => arreterGeneration.mutate(suiviId)}
+                    >
+                      Arrêter la génération
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <div
+                  style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
+                >
                   <Select
+                    label="Durée maximale de calcul"
                     id="duree-max"
                     value={dureeMax}
                     onChange={(evenement) =>
                       setDureeMax(Number(evenement.target.value))
                     }
+                    options={DUREES.map((duree) => ({
+                      value: duree.valeur,
+                      label: duree.libelle,
+                    }))}
+                  />
+                  {faisabiliteEnEchec && (
+                    <Alert tone="danger" title="Lancement bloqué">
+                      La dernière vérification de faisabilité est en échec. Le
+                      lancement est bloqué tant que les erreurs ne sont pas
+                      corrigées.
+                    </Alert>
+                  )}
+                  {lancerGeneration.error !== null && (
+                    <Alert tone="danger" title="Lancement impossible">
+                      {lancerGeneration.error.message}
+                      {lancerGeneration.error instanceof ErreurApi &&
+                        lancerGeneration.error.statut === 422 &&
+                        ' Le rapport de faisabilité a été mis à jour ci-contre.'}
+                    </Alert>
+                  )}
+                  <Button
+                    size="md"
+                    fullWidth
+                    disabled={faisabiliteEnEchec}
+                    loading={lancerGeneration.isPending}
+                    onClick={() => lancerGeneration.mutate()}
                   >
-                    {DUREES.map((duree) => (
-                      <option key={duree.valeur} value={duree.valeur}>
-                        {duree.libelle}
-                      </option>
-                    ))}
-                  </Select>
+                    Lancer la génération
+                  </Button>
                 </div>
-                {faisabiliteEnEchec && (
-                  <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
-                    La dernière vérification de faisabilité est en échec. Le
-                    lancement est bloqué tant que les erreurs ne sont pas
-                    corrigées.
-                  </p>
-                )}
-                {lancerGeneration.error !== null && (
-                  <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
-                    {lancerGeneration.error.message}
-                    {lancerGeneration.error instanceof ErreurApi &&
-                      lancerGeneration.error.statut === 422 &&
-                      ' Le rapport de faisabilité a été mis à jour ci-contre.'}
-                  </p>
-                )}
-                <Button
-                  disabled={faisabiliteEnEchec || lancerGeneration.isPending}
-                  onClick={() => lancerGeneration.mutate()}
-                >
-                  {lancerGeneration.isPending
-                    ? 'Lancement…'
-                    : 'Lancer la génération'}
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <Spinner />
-                  <div>
-                    <p className="text-sm font-semibold text-neutral-900">
-                      Génération en cours…
-                    </p>
-                    <p className="text-xs text-neutral-500">
-                      Temps écoulé :{' '}
-                      {progression?.tempsEcouleSecondes !== null &&
-                      progression?.tempsEcouleSecondes !== undefined
-                        ? formatSecondes(progression.tempsEcouleSecondes)
-                        : '—'}{' '}
-                      / {formatSecondes(dureeMax)} max
-                    </p>
-                  </div>
-                </div>
-                <dl className="grid grid-cols-2 gap-3 rounded-lg bg-neutral-50 p-4 text-sm">
-                  <div>
-                    <dt className="text-neutral-500">Score</dt>
-                    <dd className="mt-0.5 font-mono font-medium text-neutral-900">
-                      {progression?.score ?? '—'}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-neutral-500">Conflits durs</dt>
-                    <dd
-                      className={`mt-0.5 font-medium ${
-                        nbDurs !== null && nbDurs > 0
-                          ? 'text-red-700'
-                          : 'text-green-700'
-                      }`}
-                    >
-                      {nbDurs !== null ? nbDurs : '—'}
-                    </dd>
-                  </div>
-                </dl>
-                <Button
-                  variante="danger"
-                  disabled={arreterGeneration.isPending}
-                  onClick={() => arreterGeneration.mutate(suiviId)}
-                >
-                  {arreterGeneration.isPending ? 'Arrêt…' : 'Arrêter'}
-                </Button>
-              </div>
-            )}
+              )}
 
-            {resultatFinal !== null && suiviId === null && (
-              <div
-                className={`mt-4 rounded-lg px-4 py-3 text-sm ${
-                  resultatFinal.statut === 'TERMINEE'
-                    ? 'border border-green-200 bg-green-50 text-green-800'
-                    : resultatFinal.statut === 'ARRETEE'
-                      ? 'border border-neutral-200 bg-neutral-50 text-neutral-700'
-                      : 'border border-red-200 bg-red-50 text-red-700'
-                }`}
-              >
-                {resultatFinal.statut === 'TERMINEE' && (
-                  <>
-                    <p className="font-semibold">Génération terminée.</p>
-                    <p className="mt-1">
+              {resultatFinal !== null && !enCours && (
+                <div style={{ marginTop: '16px' }}>
+                  {resultatFinal.statut === 'TERMINEE' && (
+                    <Alert
+                      tone="success"
+                      title="Génération terminée."
+                      onClose={() => setResultatFinal(null)}
+                    >
                       Score final :{' '}
-                      <span className="font-mono">
+                      <span style={{ fontFamily: 'var(--font-mono)' }}>
                         {resultatFinal.score ?? '—'}
                       </span>
                       {' · '}
                       <Link
                         href="/ecole/planning"
-                        className="font-medium underline"
+                        style={{
+                          color: 'inherit',
+                          fontWeight: 'var(--weight-medium)',
+                          textDecoration: 'underline',
+                        }}
                       >
                         Voir le planning
                       </Link>
-                    </p>
-                  </>
-                )}
-                {resultatFinal.statut === 'INFAISABLE' && (
-                  <>
-                    <p className="font-semibold">
-                      Génération infaisable : des contraintes dures restent
-                      violées.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setAnalyseId(resultatFinal.id)}
-                      className="mt-1 font-medium underline"
+                    </Alert>
+                  )}
+                  {resultatFinal.statut === 'INFAISABLE' && (
+                    <Alert
+                      tone="danger"
+                      title="Génération infaisable : des contraintes dures restent violées."
+                      onClose={() => setResultatFinal(null)}
                     >
-                      Voir l’analyse des contraintes
-                    </button>
-                  </>
-                )}
-                {resultatFinal.statut === 'ECHEC' && (
-                  <p className="font-semibold">
-                    La génération a échoué. Réessayez ou contactez le support.
-                  </p>
-                )}
-                {resultatFinal.statut === 'ARRETEE' && (
-                  <p className="font-semibold">
-                    Génération arrêtée. La meilleure solution trouvée a été
-                    conservée.
-                  </p>
-                )}
-              </div>
-            )}
+                      <button
+                        type="button"
+                        onClick={() => setAnalyseId(resultatFinal.id)}
+                        style={{
+                          background: 'none',
+                          border: 0,
+                          padding: 0,
+                          color: 'inherit',
+                          font: 'inherit',
+                          fontWeight: 'var(--weight-medium)',
+                          textDecoration: 'underline',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Voir l’analyse des contraintes
+                      </button>
+                    </Alert>
+                  )}
+                  {resultatFinal.statut === 'ECHEC' && (
+                    <Alert
+                      tone="danger"
+                      title="La génération a échoué."
+                      onClose={() => setResultatFinal(null)}
+                    >
+                      Réessayez ou contactez le support.
+                    </Alert>
+                  )}
+                  {resultatFinal.statut === 'ARRETEE' && (
+                    <Alert
+                      tone="neutral"
+                      title="Génération arrêtée."
+                      onClose={() => setResultatFinal(null)}
+                    >
+                      La meilleure solution trouvée a été conservée.
+                    </Alert>
+                  )}
+                </div>
+              )}
+            </div>
           </Card>
 
-          <Card titre="Pondérations">
-            <p className="text-sm text-neutral-600">
-              Ajustez l’importance des règles souples (rythme, équilibrage,
-              préférences) prises en compte par le moteur.
-            </p>
-            <Link
-              href="/ecole/ponderations"
-              className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-teal-600 hover:text-teal-800"
-            >
-              Régler les pondérations
-              <svg
-                className="h-4 w-4"
-                viewBox="0 0 20 20"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
+          {/* ---------- Pondérations ---------- */}
+          <Card padded={false}>
+            <div style={{ padding: '18px 24px' }}>
+              <h3 style={TITRE_CARTE}>Pondérations</h3>
+              <p
+                style={{
+                  margin: '8px 0 0',
+                  fontSize: 'var(--text-sm)',
+                  color: 'var(--text-muted)',
+                }}
               >
-                <path
-                  d="M7 5l5 5-5 5"
+                Ajustez l’importance des règles souples (rythme, équilibrage,
+                préférences) prises en compte par le moteur.
+              </p>
+              <Link
+                href="/ecole/ponderations"
+                style={{
+                  marginTop: '12px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: 'var(--text-base)',
+                  fontWeight: 'var(--weight-medium)',
+                  color: 'var(--text-link)',
+                }}
+              >
+                Régler les pondérations
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                />
-              </svg>
-            </Link>
+                >
+                  <path d="m9 18 6-6-6-6" />
+                </svg>
+              </Link>
+            </div>
           </Card>
         </div>
       </div>
 
-      <Card titre="Historique des générations">
+      {/* ---------- Historique des générations ---------- */}
+      <Card padded={false} style={{ overflow: 'hidden' }}>
+        <div style={ENTETE_CARTE}>
+          <h3 style={TITRE_CARTE}>Historique des générations</h3>
+        </div>
         {requeteGenerations.isLoading ? (
           <ChargementPage />
         ) : requeteGenerations.error !== null ? (
-          <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {requeteGenerations.error.message}
-          </p>
+          <div style={{ padding: '16px 24px 24px' }}>
+            <Alert tone="danger" title="Historique indisponible">
+              {requeteGenerations.error.message}
+            </Alert>
+          </div>
         ) : generations.length === 0 ? (
-          <EmptyState message="Aucune génération pour le moment." />
+          <EmptyState
+            title="Aucune génération pour le moment"
+            description="Vérifiez la faisabilité puis lancez une première génération : l’historique se remplira ici."
+          />
         ) : (
-          <Table>
-            <THead>
-              <Tr>
-                <Th>Date</Th>
-                <Th>Durée max</Th>
-                <Th>Statut</Th>
-                <Th>Score</Th>
-                <Th className="text-right">Analyse</Th>
-              </Tr>
-            </THead>
-            <TBody>
+          <table
+            style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              fontSize: 'var(--text-sm)',
+            }}
+          >
+            <thead>
+              <tr>
+                <th style={TH}>Date</th>
+                <th style={TH}>Durée max</th>
+                <th style={TH}>Statut</th>
+                <th style={TH}>Score</th>
+                <th style={TH_RIGHT}>Analyse</th>
+              </tr>
+            </thead>
+            <tbody>
               {generations.map((generation) => (
-                <Tr key={generation.id}>
-                  <Td>{formatDateHeure(generation.lanceeLe)}</Td>
-                  <Td>{formatSecondes(generation.dureeMaxSecondes)}</Td>
-                  <Td>
-                    <BadgeGeneration statut={generation.statut} />
-                  </Td>
-                  <Td className="font-mono text-xs">
-                    {generation.score ?? '—'}
-                  </Td>
-                  <Td className="text-right">
+                <tr key={generation.id}>
+                  <td style={TD}>{formatDateHeure(generation.lanceeLe)}</td>
+                  <td style={TD}>{formatSecondes(generation.dureeMaxSecondes)}</td>
+                  <td style={TD}>
+                    <Badge tone={BADGE_STATUT[generation.statut].tone} dot size="sm">
+                      {BADGE_STATUT[generation.statut].libelle}
+                    </Badge>
+                  </td>
+                  <td style={TD_MONO}>{generation.score ?? '—'}</td>
+                  <td style={TD_RIGHT}>
                     <Button
-                      taille="sm"
-                      variante="ghost"
+                      variant="ghost"
+                      size="sm"
                       disabled={generation.statut === 'EN_COURS'}
                       onClick={() => setAnalyseId(generation.id)}
                     >
                       Analyse
                     </Button>
-                  </Td>
-                </Tr>
+                  </td>
+                </tr>
               ))}
-            </TBody>
-          </Table>
+            </tbody>
+          </table>
         )}
       </Card>
 
+      {/* ---------- Analyse du score par règle ---------- */}
       <Dialog
         ouvert={analyseId !== null}
         titre="Analyse du score"
@@ -573,41 +866,65 @@ export default function PageGeneration() {
         {requeteAnalyse.isLoading ? (
           <ChargementPage />
         ) : requeteAnalyse.error !== null ? (
-          <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <Alert tone="danger" title="Analyse indisponible">
             {requeteAnalyse.error.message}
-          </p>
+          </Alert>
         ) : requeteAnalyse.data === undefined ? (
-          <EmptyState message="Analyse indisponible." />
+          <EmptyState variant="gated" title="Analyse indisponible" />
         ) : (
-          <div className="space-y-4">
-            <p className="text-sm text-neutral-600">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <p
+              style={{
+                margin: 0,
+                fontSize: 'var(--text-sm)',
+                color: 'var(--text-muted)',
+              }}
+            >
               Score global :{' '}
-              <span className="font-mono font-medium text-neutral-900">
+              <span
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 'var(--weight-semibold)',
+                  color: 'var(--text-strong)',
+                }}
+              >
                 {requeteAnalyse.data.score ?? '—'}
               </span>
             </p>
             {requeteAnalyse.data.contraintes.length === 0 ? (
-              <EmptyState message="Aucune contrainte pénalisée." />
+              <EmptyState
+                variant="gated"
+                title="Aucune contrainte pénalisée"
+                description="Le moteur n’a relevé aucune pénalité sur cette génération."
+              />
             ) : (
-              <div className="max-h-80 overflow-y-auto">
-                <Table>
-                  <THead>
-                    <Tr>
-                      <Th>Règle</Th>
-                      <Th>Violations</Th>
-                      <Th>Description</Th>
-                    </Tr>
-                  </THead>
-                  <TBody>
+              <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
+                <table
+                  style={{
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    fontSize: 'var(--text-sm)',
+                  }}
+                >
+                  <thead>
+                    <tr>
+                      <th style={TH}>Règle</th>
+                      <th style={TH_RIGHT}>Violations</th>
+                      <th style={TH}>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
                     {requeteAnalyse.data.contraintes.map((contrainte) => (
-                      <Tr key={contrainte.regle}>
-                        <Td>{contrainte.regle}</Td>
-                        <Td>{contrainte.nombreViolations}</Td>
-                        <Td className="text-sm">{contrainte.libelle}</Td>
-                      </Tr>
+                      <tr key={contrainte.regle}>
+                        <td style={TD_MONO}>{contrainte.regle}</td>
+                        <td style={TD_RIGHT}>{contrainte.nombreViolations}</td>
+                        <td style={{ ...TD, whiteSpace: 'normal' }}>
+                          {contrainte.libelle}
+                        </td>
+                      </tr>
                     ))}
-                  </TBody>
-                </Table>
+                  </tbody>
+                </table>
               </div>
             )}
           </div>

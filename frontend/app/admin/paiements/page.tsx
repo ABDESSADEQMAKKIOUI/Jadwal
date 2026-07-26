@@ -106,13 +106,11 @@ export default function PagePaiements() {
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-neutral-900">Paiements</h1>
-          <p className="mt-1 text-sm text-neutral-500">
-            Paiements manuels (virement bancaire, espèces, chèque) enregistrés
-            par l’administration.
-          </p>
-        </div>
+        {/* Le titre de page est rendu par la barre supérieure d'AppShell. */}
+        <p className="text-sm text-neutral-500">
+          Paiements manuels (virement bancaire, espèces, chèque) enregistrés par
+          l’administration.
+        </p>
         <Button
           onClick={() => {
             creation.reset();

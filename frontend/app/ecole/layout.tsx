@@ -15,14 +15,16 @@ export default async function EcoleLayout({
 
   return (
     <AppShell
-      nomUtilisateur={session.nomComplet}
+      nomUtilisateur={session.nomComplet || session.email}
+      roleUtilisateur={session.role}
       navigation={[
         { href: '/ecole', libelle: 'Tableau de bord' },
+        { href: '/ecole/planning', libelle: 'Planning' },
+        { href: '/ecole/generation', libelle: 'Génération' },
         { href: '/ecole/referentiel', libelle: 'Référentiel' },
         { href: '/ecole/enseignants', libelle: 'Enseignants' },
         { href: '/ecole/maquettes', libelle: 'Maquettes' },
-        { href: '/ecole/generation', libelle: 'Génération' },
-        { href: '/ecole/planning', libelle: 'Planning' },
+        { href: '/ecole/ponderations', libelle: 'Pondérations' },
       ]}
     >
       {children}

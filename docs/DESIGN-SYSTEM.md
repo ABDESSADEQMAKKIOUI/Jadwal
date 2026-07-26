@@ -65,10 +65,31 @@ titre de page) · `text-3xl` (36, KPI). Plus dense que Tailwind par défaut — 
 </Card>
 ```
 
+## Règles d'adhérence du design system
+
+Le design system livre ses propres règles de lint (`_adherence.oxlintrc.json` dans l'export). Les
+plus utiles ici, transposées :
+
+1. **Pas de couleur en dur** — jamais `#47a398` dans le code : `var(--teal-500)` ou l'utilitaire
+   `bg-brand`. Une couleur en dur échappe à toute mise à jour du design system.
+2. **Polices** — uniquement **Inter** et **Noto Sans Arabic** (déjà chargées par `tokens/fonts.css`).
+   Ne pas déclarer d'autre `font-family`.
+3. **Props des composants portés** — les composants de `components/ds/` reprennent l'API du design
+   system : leurs props et leurs valeurs d'énumération sont **strictes**. Exemple : `<Alert>`
+   n'accepte que `tone`, `title`, `children`, `icon`, `onClose`, `style`, et `tone` vaut
+   `success | danger | warning | info | neutral`. Ne pas inventer de prop.
+4. **Importer depuis l'index** — `import { Card, Alert } from '@/components/ds'`, pas depuis les
+   fichiers internes.
+5. **Espacements** : préférer l'échelle (`var(--space-*)` ou les utilitaires Tailwind, grille de
+   4 px). Le design system tolère une valeur en px pour une géométrie ponctuelle (largeur d'un champ
+   de recherche, hauteur d'un logo) — ses propres écrans le font.
+
 ## Règles
 
-- **Composants d'abord** : `components/ui/` (Button, Card, Input, Select, Label, Table, Badge,
-  Dialog, Spinner, EmptyState) porte déjà le style du DS. Restylez le composant, pas l'écran.
+- **Composants d'abord** : `components/ds/` porte fidèlement les composants du design system (API
+  d'origine en anglais : `variant`, `size`, `tone`). `components/ui/` conserve l'API française
+  historique (`variante`, `taille`, `titre`) utilisée par les écrans admin. Restylez le composant,
+  pas l'écran.
 - **Pas de palette Tailwind par défaut** : `gray-*`, `slate-*`, `indigo-*` ne doivent plus
   apparaître — `neutral-*` et `teal-*` sont liés aux valeurs Ynexis.
 - **Couleurs de matières** : ce sont des **données** (`matiere.couleur`), pas des tokens. Le jeu de

@@ -15,7 +15,8 @@ export default async function AdminLayout({
 
   return (
     <AppShell
-      nomUtilisateur={session.nomComplet}
+      nomUtilisateur={session.nomComplet || session.email}
+      roleUtilisateur="SUPER ADMIN"
       navigation={[
         { href: '/admin', libelle: 'Tableau de bord' },
         { href: '/admin/etablissements', libelle: 'Établissements' },

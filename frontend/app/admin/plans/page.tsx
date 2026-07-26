@@ -56,12 +56,10 @@ export default function PagePlans() {
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-neutral-900">Plans</h1>
-          <p className="mt-1 text-sm text-neutral-500">
-            Offres d’abonnement annuel proposées aux établissements.
-          </p>
-        </div>
+        {/* Le titre de page est rendu par la barre supérieure d'AppShell. */}
+        <p className="text-sm text-neutral-500">
+          Offres d’abonnement annuel proposées aux établissements.
+        </p>
         <Button
           onClick={() => {
             creation.reset();

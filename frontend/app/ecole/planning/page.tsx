@@ -8,7 +8,6 @@ import {
   extraireConflits,
 } from '@/lib/api-planning';
 import { apiFetch } from '@/lib/api';
-import { formatDate } from '@/lib/format';
 import type {
   Conflit,
   EnseignantResume,
@@ -22,12 +21,13 @@ import type {
   VuePlanning,
 } from '@/lib/types-planning';
 import { GrillePlanning } from '@/components/planning/grille-planning';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import {
+  construireLegende,
+  LegendeMatieres,
+} from '@/components/planning/legende-matieres';
+import { PanneauVersions } from '@/components/planning/panneau-versions';
+import { Alert, Button, Card, EmptyState, Select } from '@/components/ds';
 import { Dialog } from '@/components/ui/dialog';
-import { EmptyState } from '@/components/ui/empty-state';
-import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
 import { ChargementPage, Spinner } from '@/components/ui/spinner';
 
 interface OptionEntite {
@@ -112,6 +112,9 @@ export default function PagePlanning() {
 
   const segmentVue =
     vue === 'GROUPE' ? 'groupe' : vue === 'ENSEIGNANT' ? 'enseignant' : 'salle';
+
+  const libelleEntite =
+    vue === 'GROUPE' ? 'Groupe' : vue === 'ENSEIGNANT' ? 'Enseignant' : 'Salle';
 
   const parametres = new URLSearchParams({ semaine });
   if (versionId !== null) parametres.set('versionId', String(versionId));
@@ -249,13 +252,10 @@ export default function PagePlanning() {
 
   if (requeteGrille.error !== null || requeteGrille.data === undefined) {
     return (
-      <div className="space-y-4">
-        <h1 className="text-xl font-semibold text-neutral-900">Planning</h1>
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Grille horaire indisponible. Configurez d’abord la grille horaire de
-          l’établissement dans le Référentiel.
-        </p>
-      </div>
+      <Alert tone="warning" title="Grille horaire indisponible">
+        Configurez d’abord la grille horaire de l’établissement dans le
+        Référentiel.
+      </Alert>
     );
   }
 
@@ -263,100 +263,42 @@ export default function PagePlanning() {
   const versions = requeteVersions.data ?? [];
   const salles = requeteSalles.data ?? [];
   const enseignants = requeteEnseignants.data ?? [];
+  const seancesAffichees = requetePlanning.data?.seances ?? [];
+  const legende = construireLegende(seancesAffichees, grille.dureeUniteMinutes);
+
+  const nbConflits = conflits?.length ?? 0;
+  const erreurSimple =
+    conflits !== null && conflits.every((conflit) => conflit.regle === 'ERREUR');
+  const titreConflits = erreurSimple
+    ? 'Action refusée'
+    : `Déplacement refusé : ${nbConflits} conflit${nbConflits > 1 ? 's' : ''} détecté${nbConflits > 1 ? 's' : ''}`;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-neutral-900">Planning</h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          Consultation et ajustement manuel des emplois du temps. Glissez une
-          séance vers un autre créneau pour la déplacer.
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'space-between',
+          gap: 16,
+          flexWrap: 'wrap',
+        }}
+      >
+        <p
+          style={{
+            margin: 0,
+            fontSize: 'var(--text-base)',
+            color: 'var(--text-muted)',
+            maxWidth: '62ch',
+          }}
+        >
+          Consultation et ajustement manuel. Glissez une séance vers un autre
+          créneau pour la déplacer.
         </p>
-      </div>
-
-      <Card>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <Label htmlFor="vue">Vue</Label>
-            <Select
-              id="vue"
-              value={vue}
-              onChange={(evenement) => {
-                setVue(evenement.target.value as VuePlanning);
-                setEntiteId(null);
-              }}
-            >
-              <option value="GROUPE">Groupe</option>
-              <option value="ENSEIGNANT">Enseignant</option>
-              <option value="SALLE">Salle</option>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="entite">
-              {vue === 'GROUPE'
-                ? 'Groupe'
-                : vue === 'ENSEIGNANT'
-                  ? 'Enseignant'
-                  : 'Salle'}
-            </Label>
-            <Select
-              id="entite"
-              value={entiteEffective ?? ''}
-              onChange={(evenement) =>
-                setEntiteId(Number(evenement.target.value))
-              }
-            >
-              {options.length === 0 && <option value="">Aucun élément</option>}
-              {options.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.libelle}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="version">Version</Label>
-            <Select
-              id="version"
-              value={versionId ?? ''}
-              onChange={(evenement) =>
-                setVersionId(
-                  evenement.target.value === ''
-                    ? null
-                    : Number(evenement.target.value),
-                )
-              }
-            >
-              <option value="">Version active</option>
-              {versions.map((version) => (
-                <option key={version.id} value={version.id}>
-                  {version.libelle}
-                  {version.active ? ' (Active)' : ''}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="semaine">Semaine</Label>
-            <Select
-              id="semaine"
-              value={semaine}
-              onChange={(evenement) =>
-                setSemaine(evenement.target.value as Semaine)
-              }
-            >
-              <option value="TOUTES">Toutes</option>
-              <option value="A">Semaine A</option>
-              <option value="B">Semaine B</option>
-            </Select>
-          </div>
-        </div>
-
-        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-4">
-          <span className="text-sm text-neutral-500">Export PDF :</span>
+        <div style={{ display: 'flex', gap: 8 }}>
           <Button
-            variante="secondary"
-            taille="sm"
+            variant="secondary"
+            size="md"
             onClick={() => telechargerPdf(entiteEffective ?? undefined)}
             disabled={
               exportEnCours || vue !== 'GROUPE' || entiteEffective === null
@@ -367,140 +309,250 @@ export default function PagePlanning() {
                 : "L'export PDF concerne les groupes"
             }
           >
-            Groupe affiché
+            PDF · groupe affiché
           </Button>
           <Button
-            variante="primary"
-            taille="sm"
+            variant="primary"
+            size="md"
+            loading={exportEnCours}
             onClick={() => telechargerPdf()}
-            disabled={exportEnCours}
+            title="Exporter le planning de tous les groupes"
           >
-            {exportEnCours ? 'Génération…' : 'Tous les groupes'}
+            PDF · tous les groupes
           </Button>
-          {erreurExport && (
-            <span className="text-sm text-red-700">{erreurExport}</span>
-          )}
+        </div>
+      </div>
+
+      <Card padded={false}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, minmax(0, 1fr)) auto',
+            gap: 16,
+            alignItems: 'end',
+            padding: '18px 24px',
+          }}
+        >
+          <Select
+            label="Vue"
+            id="vue"
+            value={vue}
+            onChange={(evenement) => {
+              setVue(evenement.target.value as VuePlanning);
+              setEntiteId(null);
+            }}
+            options={[
+              { value: 'GROUPE', label: 'Groupe' },
+              { value: 'ENSEIGNANT', label: 'Enseignant' },
+              { value: 'SALLE', label: 'Salle' },
+            ]}
+          />
+          <Select
+            label={libelleEntite}
+            id="entite"
+            value={entiteEffective ?? ''}
+            onChange={(evenement) => setEntiteId(Number(evenement.target.value))}
+          >
+            {options.length === 0 && <option value="">Aucun élément</option>}
+            {options.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.libelle}
+              </option>
+            ))}
+          </Select>
+          <Select
+            label="Version"
+            id="version"
+            value={versionId ?? ''}
+            onChange={(evenement) =>
+              setVersionId(
+                evenement.target.value === ''
+                  ? null
+                  : Number(evenement.target.value),
+              )
+            }
+          >
+            <option value="">Version active</option>
+            {versions.map((version) => (
+              <option key={version.id} value={version.id}>
+                {version.libelle}
+                {version.active ? ' (Active)' : ''}
+              </option>
+            ))}
+          </Select>
+          <Select
+            label="Semaine"
+            id="semaine"
+            value={semaine}
+            onChange={(evenement) =>
+              setSemaine(evenement.target.value as Semaine)
+            }
+            options={[
+              { value: 'TOUTES', label: 'Toutes' },
+              { value: 'A', label: 'Semaine A' },
+              { value: 'B', label: 'Semaine B' },
+            ]}
+          />
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              height: 38,
+              paddingLeft: 16,
+              borderLeft: '1px solid var(--border-subtle)',
+            }}
+          >
+            <span
+              style={{
+                display: 'inline-block',
+                width: 8,
+                height: 8,
+                borderRadius: 'var(--radius-pill)',
+                background:
+                  conflits === null
+                    ? 'var(--status-success-solid)'
+                    : 'var(--status-danger-solid)',
+              }}
+            />
+            <span
+              style={{
+                fontSize: 'var(--text-sm)',
+                color: 'var(--text-muted)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {conflits === null
+                ? 'Aucun conflit signalé'
+                : `${nbConflits} conflit${nbConflits > 1 ? 's' : ''} signalé${nbConflits > 1 ? 's' : ''}`}
+            </span>
+          </div>
         </div>
       </Card>
 
       {conflits !== null && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-red-800">
-                Déplacement refusé : conflits détectés
-              </p>
-              <ul className="mt-1 space-y-0.5 text-sm text-red-700">
-                {conflits.map((conflit, index) => (
-                  <li key={`${conflit.regle}-${index}`}>
-                    <span className="font-mono text-xs font-semibold">
+        <Alert
+          tone="danger"
+          title={titreConflits}
+          onClose={() => setConflits(null)}
+        >
+          <ul
+            style={{
+              margin: '6px 0 0',
+              padding: 0,
+              listStyle: 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 4,
+            }}
+          >
+            {conflits.map((conflit, index) => (
+              <li key={`${conflit.regle}-${index}`}>
+                {conflit.regle.length > 0 && conflit.regle !== 'ERREUR' && (
+                  <>
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: 'var(--text-xs)',
+                        fontWeight: 'var(--weight-semibold)',
+                      }}
+                    >
                       {conflit.regle}
                     </span>
-                    {conflit.regle.length > 0 ? ' : ' : ''}
-                    {conflit.message}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <button
-              type="button"
-              onClick={() => setConflits(null)}
-              aria-label="Fermer"
-              className="rounded-md p-1 text-red-400 hover:bg-red-100 hover:text-red-600"
-            >
-              <svg
-                className="h-4 w-4"
-                viewBox="0 0 20 20"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              >
-                <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
-              </svg>
-            </button>
-          </div>
-        </div>
+                    {' · '}
+                  </>
+                )}
+                {conflit.message}
+              </li>
+            ))}
+          </ul>
+        </Alert>
       )}
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
-        <div className="min-w-0">
-          {requetePlanning.isLoading ? (
-            <ChargementPage />
-          ) : requetePlanning.error !== null ? (
-            <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {requetePlanning.error.message}
-            </p>
-          ) : entiteEffective === null ? (
-            <EmptyState message="Aucune entité à afficher. Créez d’abord vos groupes, enseignants et salles dans le Référentiel." />
-          ) : requetePlanning.data === undefined ? (
-            <EmptyState message="Aucun planning disponible." />
-          ) : (
-            <div className="relative">
-              {modifierSeance.isPending && (
-                <div className="absolute right-3 top-3 z-50">
-                  <Spinner />
-                </div>
-              )}
-              <GrillePlanning
-                grille={grille}
-                planning={requetePlanning.data}
-                vue={vue}
-                onDeplacer={(seanceId, creneauId) =>
-                  modifierSeance.mutate({ seanceId, corps: { creneauId } })
-                }
-                onBasculerVerrou={(seance) => basculerVerrou.mutate(seance)}
-                onChangerSalle={(seance) => {
-                  setSalleChoisie(seance.salleId);
-                  setSeancePourSalle(seance);
-                }}
-                onChangerEnseignant={(seance) => {
-                  setEnseignantChoisi(seance.enseignantId);
-                  setSeancePourEnseignant(seance);
-                }}
-              />
+      {erreurExport !== null && (
+        <Alert
+          tone="danger"
+          title="Export PDF impossible"
+          onClose={() => setErreurExport(null)}
+        >
+          {erreurExport}
+        </Alert>
+      )}
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0, 1fr) 272px',
+          gap: 20,
+          alignItems: 'start',
+        }}
+      >
+        <div style={{ minWidth: 0, position: 'relative' }}>
+          {modifierSeance.isPending && (
+            <div
+              style={{
+                position: 'absolute',
+                right: 12,
+                top: 12,
+                zIndex: 'var(--z-sticky)',
+              }}
+            >
+              <Spinner />
             </div>
+          )}
+          {requetePlanning.isLoading ? (
+            <Card>
+              <ChargementPage />
+            </Card>
+          ) : requetePlanning.error !== null ? (
+            <Alert tone="danger" title="Planning indisponible">
+              {requetePlanning.error.message}
+            </Alert>
+          ) : entiteEffective === null ? (
+            <Card padded={false}>
+              <EmptyState
+                variant="gated"
+                title="Aucune entité à afficher"
+                description="Créez d’abord vos groupes, enseignants et salles dans le Référentiel."
+              />
+            </Card>
+          ) : requetePlanning.data === undefined ? (
+            <Card padded={false}>
+              <EmptyState
+                variant="gated"
+                title="Aucun planning disponible"
+                description="Lancez une génération pour produire un emploi du temps."
+              />
+            </Card>
+          ) : (
+            <GrillePlanning
+              grille={grille}
+              planning={requetePlanning.data}
+              vue={vue}
+              onDeplacer={(seanceId, creneauId) =>
+                modifierSeance.mutate({ seanceId, corps: { creneauId } })
+              }
+              onBasculerVerrou={(seance) => basculerVerrou.mutate(seance)}
+              onChangerSalle={(seance) => {
+                setSalleChoisie(seance.salleId);
+                setSeancePourSalle(seance);
+              }}
+              onChangerEnseignant={(seance) => {
+                setEnseignantChoisi(seance.enseignantId);
+                setSeancePourEnseignant(seance);
+              }}
+            />
           )}
         </div>
 
-        <Card titre="Versions du planning" className="self-start">
-          {versions.length === 0 ? (
-            <EmptyState message="Aucune version. Lancez une génération pour créer un planning." />
-          ) : (
-            <ul className="space-y-3">
-              {versions.map((version) => (
-                <li
-                  key={version.id}
-                  className="rounded-lg border border-neutral-200 p-3"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-medium text-neutral-900">
-                      {version.libelle}
-                    </p>
-                    {version.active && (
-                      <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
-                        Active
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-1 text-xs text-neutral-500">
-                    Créée le {formatDate(version.creeeLe)} ·{' '}
-                    {version.nbSeances} séances
-                  </p>
-                  {!version.active && (
-                    <Button
-                      variante="secondary"
-                      taille="sm"
-                      className="mt-2 w-full"
-                      onClick={() => setVersionARestaurer(version)}
-                    >
-                      Restaurer cette version
-                    </Button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <PanneauVersions
+            versions={versions}
+            chargement={requeteVersions.isLoading}
+            onRestaurer={(version) => setVersionARestaurer(version)}
+          />
+          <LegendeMatieres lignes={legende} />
+        </div>
       </div>
 
       {/* Dialog changement de salle */}
@@ -510,35 +562,41 @@ export default function PagePlanning() {
         onFermer={() => setSeancePourSalle(null)}
       >
         {seancePourSalle !== null && (
-          <div className="space-y-4">
-            <p className="text-sm text-neutral-600">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <p
+              style={{
+                margin: 0,
+                fontSize: 'var(--text-sm)',
+                color: 'var(--text-muted)',
+              }}
+            >
               Séance {seancePourSalle.matiereLibelle} —{' '}
               {seancePourSalle.groupeLibelle}
             </p>
-            <div>
-              <Label htmlFor="nouvelle-salle">Nouvelle salle</Label>
-              <Select
-                id="nouvelle-salle"
-                value={salleChoisie ?? ''}
-                onChange={(evenement) =>
-                  setSalleChoisie(
-                    evenement.target.value === ''
-                      ? null
-                      : Number(evenement.target.value),
-                  )
-                }
-              >
-                <option value="">Choisir une salle…</option>
-                {salles.map((salle) => (
-                  <option key={salle.id} value={salle.id}>
-                    {salle.nom} ({salle.capacite} places)
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div className="flex justify-end gap-2">
+            <Select
+              label="Nouvelle salle"
+              id="nouvelle-salle"
+              value={salleChoisie ?? ''}
+              onChange={(evenement) =>
+                setSalleChoisie(
+                  evenement.target.value === ''
+                    ? null
+                    : Number(evenement.target.value),
+                )
+              }
+            >
+              <option value="">Choisir une salle…</option>
+              {salles.map((salle) => (
+                <option key={salle.id} value={salle.id}>
+                  {salle.nom} ({salle.capacite} places)
+                </option>
+              ))}
+            </Select>
+            <div
+              style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}
+            >
               <Button
-                variante="secondary"
+                variant="secondary"
                 onClick={() => setSeancePourSalle(null)}
               >
                 Annuler
@@ -568,35 +626,41 @@ export default function PagePlanning() {
         onFermer={() => setSeancePourEnseignant(null)}
       >
         {seancePourEnseignant !== null && (
-          <div className="space-y-4">
-            <p className="text-sm text-neutral-600">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <p
+              style={{
+                margin: 0,
+                fontSize: 'var(--text-sm)',
+                color: 'var(--text-muted)',
+              }}
+            >
               Séance {seancePourEnseignant.matiereLibelle} —{' '}
               {seancePourEnseignant.groupeLibelle}
             </p>
-            <div>
-              <Label htmlFor="nouvel-enseignant">Nouvel enseignant</Label>
-              <Select
-                id="nouvel-enseignant"
-                value={enseignantChoisi ?? ''}
-                onChange={(evenement) =>
-                  setEnseignantChoisi(
-                    evenement.target.value === ''
-                      ? null
-                      : Number(evenement.target.value),
-                  )
-                }
-              >
-                <option value="">Choisir un enseignant…</option>
-                {enseignants.map((enseignant) => (
-                  <option key={enseignant.id} value={enseignant.id}>
-                    {enseignant.nomComplet}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div className="flex justify-end gap-2">
+            <Select
+              label="Nouvel enseignant"
+              id="nouvel-enseignant"
+              value={enseignantChoisi ?? ''}
+              onChange={(evenement) =>
+                setEnseignantChoisi(
+                  evenement.target.value === ''
+                    ? null
+                    : Number(evenement.target.value),
+                )
+              }
+            >
+              <option value="">Choisir un enseignant…</option>
+              {enseignants.map((enseignant) => (
+                <option key={enseignant.id} value={enseignant.id}>
+                  {enseignant.nomComplet}
+                </option>
+              ))}
+            </Select>
+            <div
+              style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}
+            >
               <Button
-                variante="secondary"
+                variant="secondary"
                 onClick={() => setSeancePourEnseignant(null)}
               >
                 Annuler
@@ -626,21 +690,29 @@ export default function PagePlanning() {
         onFermer={() => setVersionARestaurer(null)}
       >
         {versionARestaurer !== null && (
-          <div className="space-y-4">
-            <p className="text-sm text-neutral-600">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <p
+              style={{
+                margin: 0,
+                fontSize: 'var(--text-sm)',
+                color: 'var(--text-body)',
+              }}
+            >
               Restaurer la version «&nbsp;{versionARestaurer.libelle}&nbsp;» ?
               Elle deviendra la version active de l’emploi du temps pour tout
               l’établissement.
             </p>
-            <div className="flex justify-end gap-2">
+            <div
+              style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}
+            >
               <Button
-                variante="secondary"
+                variant="secondary"
                 onClick={() => setVersionARestaurer(null)}
               >
                 Annuler
               </Button>
               <Button
-                disabled={restaurerVersion.isPending}
+                loading={restaurerVersion.isPending}
                 onClick={() => restaurerVersion.mutate(versionARestaurer.id)}
               >
                 {restaurerVersion.isPending ? 'Restauration…' : 'Restaurer'}

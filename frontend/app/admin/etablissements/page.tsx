@@ -60,12 +60,10 @@ export default function PageEtablissements() {
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-neutral-900">Établissements</h1>
-          <p className="mt-1 text-sm text-neutral-500">
-            Écoles clientes de la plateforme JADWAL.
-          </p>
-        </div>
+        {/* Le titre de page est rendu par la barre supérieure d'AppShell. */}
+        <p className="text-sm text-neutral-500">
+          Écoles clientes de la plateforme JADWAL.
+        </p>
         <Button onClick={ouvrirDialog}>Nouvel établissement</Button>
       </div>
 

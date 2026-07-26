@@ -2,7 +2,12 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useEffect, useState, type FormEvent } from 'react';
+import {
+  useEffect,
+  useState,
+  type CSSProperties,
+  type FormEvent,
+} from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
 import { formatUnites } from '@/lib/format';
@@ -18,15 +23,18 @@ import type {
   Semaine,
   TypePreference,
 } from '@/lib/types';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Input,
+  KpiTile,
+  Select,
+} from '@/components/ds';
 import { Dialog } from '@/components/ui/dialog';
-import { EmptyState } from '@/components/ui/empty-state';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
 import { ChargementPage } from '@/components/ui/spinner';
-import { Table, TBody, Td, Th, THead, Tr } from '@/components/ui/table';
 
 const LIBELLES_JOURS: Record<Jour, string> = {
   LUNDI: 'Lundi',
@@ -36,6 +44,137 @@ const LIBELLES_JOURS: Record<Jour, string> = {
   VENDREDI: 'Vendredi',
   SAMEDI: 'Samedi',
   DIMANCHE: 'Dimanche',
+};
+
+/* ------------------------------------------------------------------ */
+/* Styles de la maquette « JADWAL Ynexis » (écran Fiche enseignant).  */
+/* Repris mot pour mot : thMini / thMiniC / tdMini / cellBase.        */
+/* ------------------------------------------------------------------ */
+
+const RETOUR: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 4,
+  fontSize: 'var(--text-sm)',
+  color: 'var(--text-muted)',
+};
+
+const ENTETE_CARTE: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 16,
+  padding: '18px 24px',
+  borderBottom: '1px solid var(--border-subtle)',
+};
+
+const TITRE_CARTE: CSSProperties = {
+  margin: 0,
+  fontSize: 'var(--type-card-title-size)',
+  fontWeight: 'var(--type-card-title-weight)',
+  color: 'var(--text-strong)',
+};
+
+const CORPS_CARTE: CSSProperties = { padding: '18px 24px 24px' };
+
+const TH_MINI: CSSProperties = {
+  width: 56,
+  padding: '2px 4px',
+  textAlign: 'left',
+  fontSize: 'var(--text-2xs)',
+  fontWeight: 'var(--weight-semibold)',
+  color: 'var(--text-muted)',
+};
+
+const TH_MINI_C: CSSProperties = {
+  padding: '2px 4px',
+  textAlign: 'center',
+  fontSize: 'var(--text-2xs)',
+  fontWeight: 'var(--weight-semibold)',
+  letterSpacing: 'var(--tracking-caps)',
+  textTransform: 'uppercase',
+  color: 'var(--text-muted)',
+};
+
+const TD_MINI: CSSProperties = {
+  whiteSpace: 'nowrap',
+  padding: '0 6px 0 0',
+  fontSize: 'var(--text-2xs)',
+  fontVariantNumeric: 'tabular-nums',
+  color: 'var(--text-subtle)',
+};
+
+const CELLULE_BASE: CSSProperties = {
+  height: 26,
+  minWidth: 72,
+  borderRadius: 'var(--radius-xs)',
+};
+
+const ENVELOPPE_GRILLE: CSSProperties = {
+  overflowX: 'auto',
+  userSelect: 'none',
+};
+
+const TABLE_MINI: CSSProperties = {
+  minWidth: '100%',
+  borderCollapse: 'separate',
+  borderSpacing: 2,
+};
+
+const LEGENDE: CSSProperties = {
+  marginTop: 14,
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: 16,
+  fontSize: 'var(--text-xs)',
+  color: 'var(--text-muted)',
+};
+
+const LEGENDE_ITEM: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6,
+};
+
+function pastilleLegende(fond: string, bordure?: string): CSSProperties {
+  return {
+    display: 'inline-block',
+    height: 12,
+    width: 12,
+    borderRadius: 'var(--radius-xs)',
+    background: fond,
+    ...(bordure === undefined ? {} : { border: `1px solid ${bordure}` }),
+  };
+}
+
+/** Micro-titre de sous-section (idiome des libellés capitales du DS). */
+const SOUS_TITRE: CSSProperties = {
+  margin: '18px 0 8px',
+  fontSize: 'var(--text-2xs)',
+  fontWeight: 'var(--weight-semibold)',
+  letterSpacing: 'var(--tracking-caps)',
+  textTransform: 'uppercase',
+  color: 'var(--text-muted)',
+};
+
+/** Ligne de liste bordée (idiome « versions » de la maquette). */
+const LIGNE_LISTE: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  flexWrap: 'wrap',
+  gap: 12,
+  border: '1px solid var(--border-subtle)',
+  borderRadius: 'var(--radius-sm)',
+  padding: '10px 12px',
+};
+
+const PUCE_MATIERE: CSSProperties = {
+  display: 'inline-block',
+  width: 10,
+  height: 10,
+  flex: 'none',
+  borderRadius: 3,
 };
 
 function libelleHeure(grille: Grille, index: number): string {
@@ -58,17 +197,15 @@ function estPlageBloquee(grille: Grille, index: number): boolean {
   );
 }
 
-function BadgeStatutIndispo({ statut }: { statut: string }) {
-  const valide = statut === 'VALIDE';
-  return (
-    <span
-      className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${
-        valide ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
-      }`}
-    >
-      {valide ? 'Validée' : 'Brouillon'}
-    </span>
-  );
+/** Deux initiales au plus — même calcul que la maquette. */
+function initiales(nom: string): string {
+  return nom
+    .split(' ')
+    .filter(Boolean)
+    .map((partie) => partie[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
 }
 
 const FORM_PLAGE_INITIAL = {
@@ -186,6 +323,7 @@ export default function PageDetailEnseignant() {
     debut: number;
     fin: number;
   } | null>(null);
+  const [survolIndispo, setSurvolIndispo] = useState<string | null>(null);
   const [dialogPlage, setDialogPlage] = useState(false);
   const [formPlage, setFormPlage] = useState(FORM_PLAGE_INITIAL);
 
@@ -273,6 +411,7 @@ export default function PageDetailEnseignant() {
   const [preferences, setPreferences] = useState<Record<string, TypePreference>>(
     {},
   );
+  const [survolPref, setSurvolPref] = useState<string | null>(null);
   const [messagePreferences, setMessagePreferences] = useState<string | null>(
     null,
   );
@@ -348,9 +487,9 @@ export default function PageDetailEnseignant() {
   if (isLoading) return <ChargementPage />;
   if (error !== null) {
     return (
-      <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      <Alert tone="danger" title="Chargement impossible">
         {error.message}
-      </p>
+      </Alert>
     );
   }
 
@@ -358,7 +497,21 @@ export default function PageDetailEnseignant() {
     (element) => String(element.id) === id,
   );
   if (enseignant === undefined) {
-    return <EmptyState message="Enseignant introuvable." />;
+    return (
+      <Card>
+        <EmptyState
+          variant="gated"
+          title="Enseignant introuvable"
+          description="Cet enseignant n’existe pas ou ne fait pas partie de votre établissement."
+          action={
+            <Link href="/ecole/enseignants" style={RETOUR}>
+              <FlecheRetour />
+              Retour aux enseignants
+            </Link>
+          }
+        />
+      </Card>
+    );
   }
 
   const indices =
@@ -366,351 +519,552 @@ export default function PageDetailEnseignant() {
       ? Array.from({ length: grille.unitesParJour }, (_valeur, i) => i)
       : [];
 
+  const quota = enseignant.quotaHebdoUnites;
+  const pourcentageCharge =
+    quota > 0 ? Math.round((enseignant.chargeAffectee / quota) * 100) : null;
+
   return (
-    <div className="space-y-6">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* En-tête de l'écran de détail : rendu DANS le contenu (maquette). */}
       <div>
-        <Link
-          href="/ecole/enseignants"
-          className="text-sm text-teal-600 hover:text-teal-800 hover:underline"
-        >
-          ← Retour aux enseignants
+        <Link href="/ecole/enseignants" style={RETOUR}>
+          <FlecheRetour />
+          Retour aux enseignants
         </Link>
-        <h1 className="mt-2 text-xl font-semibold text-neutral-900">
-          {enseignant.nomComplet}
-        </h1>
-        <p className="mt-1 text-sm text-neutral-500">{enseignant.email}</p>
-      </div>
-
-      <Card titre="Fiche enseignant">
-        <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
-          <div>
-            <dt className="text-neutral-500">Type</dt>
-            <dd className="mt-0.5 font-medium text-neutral-900">
-              {enseignant.type === 'MIXTE' ? 'Mixte' : 'Propre'}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-neutral-500">Quota hebdomadaire</dt>
-            <dd className="mt-0.5 font-medium text-neutral-900">
-              {formatUnites(enseignant.quotaHebdoUnites)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-neutral-500">Charge affectée</dt>
-            <dd className="mt-0.5 font-medium text-neutral-900">
-              {formatUnites(enseignant.chargeAffectee)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-neutral-500">Vacataire</dt>
-            <dd className="mt-0.5 font-medium text-neutral-900">
-              {enseignant.vacataire
-                ? `Oui (buffer ${formatUnites(enseignant.bufferTrajetUnites)})`
-                : 'Non'}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-neutral-500">Max consécutif</dt>
-            <dd className="mt-0.5 font-medium text-neutral-900">
-              {formatUnites(enseignant.maxConsecutifUnites)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-neutral-500">Amplitude max / jour</dt>
-            <dd className="mt-0.5 font-medium text-neutral-900">
-              {formatUnites(enseignant.amplitudeMaxUnites)}
-            </dd>
-          </div>
-        </dl>
-      </Card>
-
-      <Card
-        titre="Habilitations (matières × niveaux)"
-        actions={
-          <Button
-            taille="sm"
-            disabled={sauvegardeHabilitations.isPending}
-            onClick={() => sauvegardeHabilitations.mutate()}
-          >
-            {sauvegardeHabilitations.isPending
-              ? 'Enregistrement…'
-              : 'Enregistrer les habilitations'}
-          </Button>
-        }
-      >
-        {(matieres ?? []).length === 0 ? (
-          <EmptyState message="Créez d’abord des matières dans le référentiel." />
-        ) : (
-          <div className="space-y-3">
-            {(matieres ?? []).map((matiere) => {
-              const habilite = matiere.id in habilitations;
-              return (
-                <div
-                  key={matiere.id}
-                  className={`rounded-lg border p-3 ${
-                    habilite
-                      ? 'border-teal-200 bg-teal-50/50'
-                      : 'border-neutral-100'
-                  }`}
-                >
-                  <label className="flex items-center gap-2 text-sm font-medium text-neutral-900">
-                    <input
-                      type="checkbox"
-                      checked={habilite}
-                      onChange={() => basculerMatiere(matiere.id)}
-                      className="h-4 w-4 rounded border-neutral-300 text-teal-600 focus:ring-teal-500"
-                    />
-                    <span
-                      className="inline-block h-3 w-3 rounded"
-                      style={{ backgroundColor: matiere.couleur }}
-                      aria-hidden="true"
-                    />
-                    {matiere.libelle}
-                  </label>
-                  {habilite && (
-                    <div className="mt-2 flex flex-wrap gap-4 pl-6">
-                      {(niveaux ?? []).length === 0 && (
-                        <p className="text-xs text-neutral-500">
-                          Aucun niveau défini.
-                        </p>
-                      )}
-                      {(niveaux ?? []).map((niveau) => (
-                        <label
-                          key={niveau.id}
-                          className="flex items-center gap-1.5 text-sm text-neutral-700"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={(
-                              habilitations[matiere.id] ?? []
-                            ).includes(niveau.id)}
-                            onChange={() =>
-                              basculerNiveau(matiere.id, niveau.id)
-                            }
-                            className="h-4 w-4 rounded border-neutral-300 text-teal-600 focus:ring-teal-500"
-                          />
-                          {niveau.libelle}
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-        {sauvegardeHabilitations.error !== null && (
-          <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {sauvegardeHabilitations.error.message}
-          </p>
-        )}
-        {sauvegardeHabilitations.isSuccess && (
-          <p className="mt-4 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
-            Habilitations enregistrées.
-          </p>
-        )}
-      </Card>
-
-      <Card
-        titre="Indisponibilités hebdomadaires"
-        actions={
-          <Button
-            taille="sm"
-            variante="secondary"
-            onClick={() => {
-              creationIndispo.reset();
-              setFormPlage(FORM_PLAGE_INITIAL);
-              setDialogPlage(true);
+        <div
+          style={{
+            marginTop: 12,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+          }}
+        >
+          <span
+            aria-hidden="true"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 48,
+              height: 48,
+              flex: 'none',
+              borderRadius: 'var(--radius-pill)',
+              background: 'var(--teal-100)',
+              color: 'var(--teal-700)',
+              fontSize: 'var(--text-md)',
+              fontWeight: 'var(--weight-semibold)',
             }}
           >
-            Ajouter une plage
-          </Button>
-        }
-      >
-        <div className="mb-4 rounded-lg border border-teal-100 bg-teal-50 px-4 py-3 text-sm text-teal-900">
-          Règle D-04 : seules les indisponibilités au statut « Validée » sont
-          prises en compte par le moteur de génération. Pensez à valider les
-          brouillons ci-dessous.
-        </div>
-
-        {grille === undefined ? (
-          <EmptyState message="Configurez d’abord la grille horaire dans le référentiel." />
-        ) : (
-          <>
-            <p className="mb-3 text-sm text-neutral-500">
-              Cliquez sur une cellule pour créer ou supprimer une
-              indisponibilité, ou faites un cliquer-glisser vertical pour créer
-              une plage.
-            </p>
-            <div
-              className="select-none overflow-x-auto"
-              onMouseUp={terminerSelection}
-              onMouseLeave={() => setSelection(null)}
+            {initiales(enseignant.nomComplet)}
+          </span>
+          <div style={{ minWidth: 0 }}>
+            <h2
+              style={{
+                margin: 0,
+                fontSize: 'var(--type-page-title-size)',
+                fontWeight: 'var(--type-page-title-weight)',
+                letterSpacing: 'var(--tracking-tight)',
+                color: 'var(--text-strong)',
+              }}
             >
-              <table className="min-w-full border-separate border-spacing-0.5">
-                <thead>
-                  <tr>
-                    <th className="w-16 px-1 py-1 text-left text-xs font-semibold text-neutral-500">
-                      Heure
-                    </th>
-                    {grille.joursActifs.map((jour) => (
-                      <th
-                        key={jour}
-                        className="px-1 py-1 text-center text-xs font-semibold text-neutral-500"
+              {enseignant.nomComplet}
+            </h2>
+            <p
+              style={{
+                margin: '4px 0 0',
+                fontSize: 'var(--text-base)',
+                color: 'var(--text-muted)',
+              }}
+            >
+              {enseignant.email}
+              {enseignant.matieres.length > 0
+                ? ` · ${enseignant.matieres.join(', ')}`
+                : ''}
+            </p>
+          </div>
+          {/* Type et statut vacataire : mêmes pastilles que la liste. */}
+          <span
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            <Badge
+              tone={enseignant.type === 'MIXTE' ? 'active' : 'info'}
+              size="sm"
+            >
+              {enseignant.type}
+            </Badge>
+            {enseignant.vacataire && (
+              <>
+                <Badge tone="info" size="sm">
+                  VACATAIRE
+                </Badge>
+                <span
+                  style={{
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--text-subtle)',
+                  }}
+                >
+                  buffer trajet {formatUnites(enseignant.bufferTrajetUnites)}
+                </span>
+              </>
+            )}
+          </span>
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+          gap: 16,
+        }}
+      >
+        <KpiTile
+          label="Quota hebdomadaire"
+          value={formatUnites(quota)}
+          hint={`${quota} unités`}
+        />
+        <KpiTile
+          label="Charge affectée"
+          value={formatUnites(enseignant.chargeAffectee)}
+          delta={pourcentageCharge === null ? null : `${pourcentageCharge} %`}
+          deltaTone={
+            pourcentageCharge !== null && pourcentageCharge > 100
+              ? 'danger'
+              : 'success'
+          }
+          hint={
+            pourcentageCharge === null
+              ? `${enseignant.chargeAffectee} unités`
+              : 'du quota'
+          }
+        />
+        <KpiTile
+          label="Max consécutif"
+          value={formatUnites(enseignant.maxConsecutifUnites)}
+          hint={`${enseignant.maxConsecutifUnites} unités`}
+        />
+        <KpiTile
+          label="Amplitude max / jour"
+          value={
+            enseignant.amplitudeMaxUnites === null
+              ? '—'
+              : formatUnites(enseignant.amplitudeMaxUnites)
+          }
+          hint={
+            enseignant.amplitudeMaxUnites === null
+              ? 'non plafonnée'
+              : `${enseignant.amplitudeMaxUnites} unités`
+          }
+        />
+      </div>
+
+      {/* Habilitations : bloc propre à l'application, dans l'idiome du DS. */}
+      <Card padded={false}>
+        <div style={ENTETE_CARTE}>
+          <h3 style={TITRE_CARTE}>Habilitations (matières × niveaux)</h3>
+          <Button
+            variant="primary"
+            size="sm"
+            loading={sauvegardeHabilitations.isPending}
+            onClick={() => sauvegardeHabilitations.mutate()}
+          >
+            Enregistrer
+          </Button>
+        </div>
+        <div style={CORPS_CARTE}>
+          {(matieres ?? []).length === 0 ? (
+            <EmptyState
+              variant="gated"
+              title="Aucune matière"
+              description="Créez d’abord des matières dans le référentiel."
+            />
+          ) : (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                gap: 12,
+                alignItems: 'start',
+              }}
+            >
+              {(matieres ?? []).map((matiere) => {
+                const habilite = matiere.id in habilitations;
+                return (
+                  <div
+                    key={matiere.id}
+                    style={{
+                      border: `1px solid ${habilite ? 'var(--color-primary-border)' : 'var(--border-subtle)'}`,
+                      borderRadius: 'var(--radius-sm)',
+                      background: habilite
+                        ? 'var(--surface-selected)'
+                        : 'var(--surface-card)',
+                      padding: '12px 14px',
+                    }}
+                  >
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        fontSize: 'var(--text-base)',
+                        fontWeight: 'var(--weight-medium)',
+                        color: 'var(--text-strong)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={habilite}
+                        onChange={() => basculerMatiere(matiere.id)}
+                        style={{
+                          width: 15,
+                          height: 15,
+                          flex: 'none',
+                          accentColor: 'var(--color-primary)',
+                          cursor: 'pointer',
+                        }}
+                      />
+                      <span
+                        aria-hidden="true"
+                        style={{
+                          ...PUCE_MATIERE,
+                          background: matiere.couleur,
+                        }}
+                      />
+                      {matiere.libelle}
+                    </label>
+                    {habilite && (
+                      <div
+                        style={{
+                          marginTop: 10,
+                          paddingLeft: 23,
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          gap: '8px 16px',
+                        }}
                       >
-                        {LIBELLES_JOURS[jour]}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {indices.map((index) => {
-                    const bloquee = estPlageBloquee(grille, index);
-                    return (
-                      <tr key={index}>
-                        <td className="whitespace-nowrap px-1 py-0.5 text-xs text-neutral-500">
-                          {libelleHeure(grille, index)}
-                        </td>
-                        {grille.joursActifs.map((jour) => {
-                          if (bloquee) {
-                            return (
-                              <td
-                                key={jour}
-                                className="h-7 min-w-20 rounded bg-neutral-200"
-                                title="Plage bloquée (déjeuner, pause…)"
-                              />
-                            );
-                          }
-                          const indispo = indispoPourCellule(jour, index);
-                          const enSelection =
-                            selection !== null &&
-                            selection.jour === jour &&
-                            index >=
-                              Math.min(selection.debut, selection.fin) &&
-                            index <= Math.max(selection.debut, selection.fin);
-                          let classe =
-                            'bg-neutral-50 hover:bg-teal-100 cursor-pointer';
-                          if (indispo !== undefined) {
-                            classe =
-                              indispo.statut === 'VALIDE'
-                                ? 'bg-red-400 hover:bg-red-500 cursor-pointer'
-                                : 'bg-amber-300 hover:bg-amber-400 cursor-pointer';
-                          } else if (enSelection) {
-                            classe = 'bg-teal-300 cursor-pointer';
-                          }
-                          return (
-                            <td
-                              key={jour}
-                              className={`h-7 min-w-20 rounded text-center text-[10px] font-medium text-white ${classe}`}
-                              title={
-                                indispo !== undefined
-                                  ? `${indispo.statut === 'VALIDE' ? 'Validée' : 'Brouillon'}${indispo.motif !== null && indispo.motif.length > 0 ? ` — ${indispo.motif}` : ''}`
-                                  : 'Disponible'
+                        {(niveaux ?? []).length === 0 && (
+                          <span
+                            style={{
+                              fontSize: 'var(--text-xs)',
+                              color: 'var(--text-muted)',
+                            }}
+                          >
+                            Aucun niveau défini.
+                          </span>
+                        )}
+                        {(niveaux ?? []).map((niveau) => (
+                          <label
+                            key={niveau.id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              fontSize: 'var(--text-sm)',
+                              color: 'var(--text-body)',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={(
+                                habilitations[matiere.id] ?? []
+                              ).includes(niveau.id)}
+                              onChange={() =>
+                                basculerNiveau(matiere.id, niveau.id)
                               }
-                              onMouseDown={(e) => {
-                                e.preventDefault();
-                                if (indispo === undefined) {
-                                  setSelection({
-                                    jour,
-                                    debut: index,
-                                    fin: index,
-                                  });
-                                } else {
-                                  cliquerCelluleOccupee(indispo);
-                                }
+                              style={{
+                                width: 14,
+                                height: 14,
+                                flex: 'none',
+                                accentColor: 'var(--color-primary)',
+                                cursor: 'pointer',
                               }}
-                              onMouseEnter={() => {
-                                if (
-                                  selection !== null &&
-                                  selection.jour === jour
-                                ) {
-                                  setSelection({ ...selection, fin: index });
-                                }
-                              }}
-                            >
-                              {indispo !== undefined &&
-                              indispo.semaine !== 'TOUTES'
-                                ? indispo.semaine
-                                : ''}
-                            </td>
-                          );
-                        })}
+                            />
+                            {niveau.libelle}
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {sauvegardeHabilitations.error !== null && (
+            <Alert tone="danger" style={{ marginTop: 16 }}>
+              {sauvegardeHabilitations.error.message}
+            </Alert>
+          )}
+          {sauvegardeHabilitations.isSuccess && (
+            <Alert tone="success" style={{ marginTop: 16 }}>
+              Habilitations enregistrées.
+            </Alert>
+          )}
+        </div>
+      </Card>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+          gap: 16,
+          alignItems: 'start',
+        }}
+      >
+        {/* ------------------- Indisponibilités -------------------- */}
+        <Card padded={false}>
+          <div style={ENTETE_CARTE}>
+            <h3 style={TITRE_CARTE}>Indisponibilités hebdomadaires</h3>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                creationIndispo.reset();
+                setFormPlage(FORM_PLAGE_INITIAL);
+                setDialogPlage(true);
+              }}
+            >
+              Ajouter une plage
+            </Button>
+          </div>
+          <div style={CORPS_CARTE}>
+            <Alert tone="info">
+              Règle D-04 : seules les indisponibilités au statut « Validée »
+              sont prises en compte par le moteur. Pensez à valider les
+              brouillons.
+            </Alert>
+
+            {grille === undefined ? (
+              <EmptyState
+                variant="gated"
+                title="Grille horaire non configurée"
+                description="Configurez d’abord la grille horaire dans le référentiel."
+              />
+            ) : (
+              <>
+                <p
+                  style={{
+                    margin: '14px 0 10px',
+                    fontSize: 'var(--text-sm)',
+                    color: 'var(--text-muted)',
+                  }}
+                >
+                  Cliquez sur une cellule pour créer ou supprimer une
+                  indisponibilité, ou faites un cliquer-glisser vertical pour
+                  créer une plage.
+                </p>
+                <div
+                  style={ENVELOPPE_GRILLE}
+                  onMouseUp={terminerSelection}
+                  onMouseLeave={() => {
+                    setSelection(null);
+                    setSurvolIndispo(null);
+                  }}
+                >
+                  <table style={TABLE_MINI}>
+                    <thead>
+                      <tr>
+                        <th style={TH_MINI}>Heure</th>
+                        {grille.joursActifs.map((jour) => (
+                          <th key={jour} style={TH_MINI_C}>
+                            {LIBELLES_JOURS[jour]}
+                          </th>
+                        ))}
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-4 text-xs text-neutral-600">
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block h-3 w-3 rounded bg-amber-300" />
-                Brouillon
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block h-3 w-3 rounded bg-red-400" />
-                Validée
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block h-3 w-3 rounded bg-neutral-200" />
-                Plage bloquée
-              </span>
-            </div>
-          </>
-        )}
+                    </thead>
+                    <tbody>
+                      {indices.map((index) => {
+                        const bloquee = estPlageBloquee(grille, index);
+                        return (
+                          <tr key={index}>
+                            <td style={TD_MINI}>
+                              {libelleHeure(grille, index)}
+                            </td>
+                            {grille.joursActifs.map((jour) => {
+                              if (bloquee) {
+                                return (
+                                  <td
+                                    key={jour}
+                                    title="Plage bloquée (déjeuner, pause…)"
+                                    style={{
+                                      ...CELLULE_BASE,
+                                      background: 'var(--neutral-200)',
+                                      cursor: 'default',
+                                    }}
+                                  />
+                                );
+                              }
+                              const cle = `${jour}:${index}`;
+                              const indispo = indispoPourCellule(jour, index);
+                              const enSelection =
+                                selection !== null &&
+                                selection.jour === jour &&
+                                index >=
+                                  Math.min(selection.debut, selection.fin) &&
+                                index <=
+                                  Math.max(selection.debut, selection.fin);
+                              let fond = 'var(--neutral-50)';
+                              if (indispo !== undefined) {
+                                fond =
+                                  indispo.statut === 'VALIDE'
+                                    ? 'var(--status-danger-solid)'
+                                    : 'var(--status-warning-solid)';
+                              } else if (enSelection) {
+                                fond = 'var(--teal-300)';
+                              } else if (survolIndispo === cle) {
+                                fond = 'var(--teal-100)';
+                              }
+                              return (
+                                <td
+                                  key={jour}
+                                  title={
+                                    indispo !== undefined
+                                      ? `${indispo.statut === 'VALIDE' ? 'Validée' : 'Brouillon'}${indispo.motif !== null && indispo.motif.length > 0 ? ` — ${indispo.motif}` : ''}`
+                                      : 'Disponible'
+                                  }
+                                  style={{
+                                    ...CELLULE_BASE,
+                                    background: fond,
+                                    cursor: 'pointer',
+                                    textAlign: 'center',
+                                    fontSize: 'var(--text-2xs)',
+                                    fontWeight: 'var(--weight-semibold)',
+                                    color: 'var(--neutral-0)',
+                                  }}
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    if (indispo === undefined) {
+                                      setSelection({
+                                        jour,
+                                        debut: index,
+                                        fin: index,
+                                      });
+                                    } else {
+                                      cliquerCelluleOccupee(indispo);
+                                    }
+                                  }}
+                                  onMouseEnter={() => {
+                                    setSurvolIndispo(cle);
+                                    if (
+                                      selection !== null &&
+                                      selection.jour === jour
+                                    ) {
+                                      setSelection({ ...selection, fin: index });
+                                    }
+                                  }}
+                                >
+                                  {indispo !== undefined &&
+                                  indispo.semaine !== 'TOUTES'
+                                    ? indispo.semaine
+                                    : ''}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <div style={LEGENDE}>
+                  <span style={LEGENDE_ITEM}>
+                    <span
+                      style={pastilleLegende('var(--status-warning-solid)')}
+                    />
+                    Brouillon
+                  </span>
+                  <span style={LEGENDE_ITEM}>
+                    <span
+                      style={pastilleLegende('var(--status-danger-solid)')}
+                    />
+                    Validée
+                  </span>
+                  <span style={LEGENDE_ITEM}>
+                    <span style={pastilleLegende('var(--neutral-200)')} />
+                    Plage bloquée
+                  </span>
+                </div>
+              </>
+            )}
 
-        {creationIndispo.error !== null && !dialogPlage && (
-          <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {creationIndispo.error.message}
-          </p>
-        )}
-        {suppressionIndispo.error !== null && (
-          <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {suppressionIndispo.error.message}
-          </p>
-        )}
+            {creationIndispo.error !== null && !dialogPlage && (
+              <Alert tone="danger" style={{ marginTop: 16 }}>
+                {creationIndispo.error.message}
+              </Alert>
+            )}
+            {suppressionIndispo.error !== null && (
+              <Alert tone="danger" style={{ marginTop: 16 }}>
+                {suppressionIndispo.error.message}
+              </Alert>
+            )}
+            {validationIndispo.error !== null && (
+              <Alert tone="danger" style={{ marginTop: 16 }}>
+                {validationIndispo.error.message}
+              </Alert>
+            )}
 
-        {(indisponibilites ?? []).length > 0 && (
-          <div className="mt-5">
-            <Table>
-              <THead>
-                <Tr>
-                  <Th>Jour</Th>
-                  <Th>Plage</Th>
-                  <Th>Durée</Th>
-                  <Th>Semaine</Th>
-                  <Th>Source</Th>
-                  <Th>Motif</Th>
-                  <Th>Statut</Th>
-                  <Th className="text-right">Actions</Th>
-                </Tr>
-              </THead>
-              <TBody>
-                {(indisponibilites ?? []).map((indispo) => (
-                  <Tr key={indispo.id}>
-                    <Td className="font-medium text-neutral-900">
-                      {LIBELLES_JOURS[indispo.jour]}
-                    </Td>
-                    <Td>
-                      {grille !== undefined
-                        ? `${libelleHeure(grille, indispo.indexDebut)} – ${libelleHeure(grille, indispo.indexDebut + indispo.dureeUnites)}`
-                        : `Unité ${indispo.indexDebut}`}
-                    </Td>
-                    <Td>{formatUnites(indispo.dureeUnites)}</Td>
-                    <Td>
-                      {indispo.semaine === 'TOUTES'
-                        ? 'Toutes'
-                        : `Semaine ${indispo.semaine}`}
-                    </Td>
-                    <Td>{indispo.source}</Td>
-                    <Td>{indispo.motif ?? '—'}</Td>
-                    <Td>
-                      <BadgeStatutIndispo statut={indispo.statut} />
-                    </Td>
-                    <Td className="text-right">
-                      <div className="flex justify-end gap-2">
+            {/* Liste des plages : porte la validation D-04 (PATCH VALIDE). */}
+            {(indisponibilites ?? []).length > 0 && (
+              <>
+                <div style={SOUS_TITRE}>Plages déclarées</div>
+                <div
+                  style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+                >
+                  {(indisponibilites ?? []).map((indispo) => (
+                    <div key={indispo.id} style={LIGNE_LISTE}>
+                      <div style={{ minWidth: 0 }}>
+                        <p
+                          style={{
+                            margin: 0,
+                            fontSize: 'var(--text-sm)',
+                            fontWeight: 'var(--weight-medium)',
+                            color: 'var(--text-strong)',
+                          }}
+                        >
+                          {LIBELLES_JOURS[indispo.jour]} ·{' '}
+                          {grille !== undefined
+                            ? `${libelleHeure(grille, indispo.indexDebut)} – ${libelleHeure(grille, indispo.indexDebut + indispo.dureeUnites)}`
+                            : `unité ${indispo.indexDebut}`}
+                        </p>
+                        <p
+                          style={{
+                            margin: '2px 0 0',
+                            fontSize: 'var(--text-xs)',
+                            color: 'var(--text-muted)',
+                          }}
+                        >
+                          {formatUnites(indispo.dureeUnites)} ·{' '}
+                          {indispo.semaine === 'TOUTES'
+                            ? 'toutes les semaines'
+                            : `semaine ${indispo.semaine}`}{' '}
+                          · {indispo.source}
+                          {indispo.motif !== null && indispo.motif.length > 0
+                            ? ` · ${indispo.motif}`
+                            : ''}
+                        </p>
+                      </div>
+                      <div
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          flex: 'none',
+                        }}
+                      >
+                        <Badge
+                          tone={
+                            indispo.statut === 'VALIDE' ? 'success' : 'warning'
+                          }
+                          size="sm"
+                        >
+                          {indispo.statut === 'VALIDE'
+                            ? 'VALIDÉE'
+                            : 'BROUILLON'}
+                        </Badge>
                         {indispo.statut !== 'VALIDE' && (
                           <Button
-                            taille="sm"
+                            size="sm"
                             disabled={validationIndispo.isPending}
                             onClick={() => validationIndispo.mutate(indispo.id)}
                           >
@@ -718,144 +1072,180 @@ export default function PageDetailEnseignant() {
                           </Button>
                         )}
                         <Button
-                          variante="danger"
-                          taille="sm"
+                          variant="danger"
+                          size="sm"
                           disabled={suppressionIndispo.isPending}
                           onClick={() => suppressionIndispo.mutate(indispo.id)}
                         >
                           Supprimer
                         </Button>
                       </div>
-                    </Td>
-                  </Tr>
-                ))}
-              </TBody>
-            </Table>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
-        )}
-      </Card>
+        </Card>
 
-      <Card
-        titre="Préférences horaires"
-        actions={
-          <Button
-            taille="sm"
-            disabled={sauvegardePreferences.isPending || grille === undefined}
-            onClick={enregistrerPreferences}
-          >
-            {sauvegardePreferences.isPending
-              ? 'Enregistrement…'
-              : 'Enregistrer les préférences'}
-          </Button>
-        }
-      >
-        {grille === undefined ? (
-          <EmptyState message="Configurez d’abord la grille horaire dans le référentiel." />
-        ) : (
-          <>
-            <p className="mb-3 text-sm text-neutral-500">
-              Cliquez sur une cellule pour alterner : neutre → à éviter →
-              préféré. Enregistrez ensuite vos modifications.
-            </p>
-            <div className="select-none overflow-x-auto">
-              <table className="min-w-full border-separate border-spacing-0.5">
-                <thead>
-                  <tr>
-                    <th className="w-16 px-1 py-1 text-left text-xs font-semibold text-neutral-500">
-                      Heure
-                    </th>
-                    {grille.joursActifs.map((jour) => (
-                      <th
-                        key={jour}
-                        className="px-1 py-1 text-center text-xs font-semibold text-neutral-500"
-                      >
-                        {LIBELLES_JOURS[jour]}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {indices.map((index) => {
-                    const bloquee = estPlageBloquee(grille, index);
-                    return (
-                      <tr key={index}>
-                        <td className="whitespace-nowrap px-1 py-0.5 text-xs text-neutral-500">
-                          {libelleHeure(grille, index)}
-                        </td>
-                        {grille.joursActifs.map((jour) => {
-                          if (bloquee) {
-                            return (
-                              <td
-                                key={jour}
-                                className="h-7 min-w-20 rounded bg-neutral-200"
-                                title="Plage bloquée"
-                              />
-                            );
-                          }
-                          const type = preferences[`${jour}:${index}`];
-                          const classe =
-                            type === 'EVITER'
-                              ? 'bg-red-300 hover:bg-red-400'
-                              : type === 'PREFERER'
-                                ? 'bg-green-300 hover:bg-green-400'
-                                : 'bg-neutral-50 hover:bg-teal-100';
-                          return (
-                            <td
-                              key={jour}
-                              className={`h-7 min-w-20 cursor-pointer rounded ${classe}`}
-                              title={
-                                type === 'EVITER'
-                                  ? 'À éviter'
-                                  : type === 'PREFERER'
-                                    ? 'Préféré'
-                                    : 'Neutre'
-                              }
-                              onClick={() => cyclerPreference(jour, index)}
-                            />
-                          );
-                        })}
+        {/* --------------------- Préférences ----------------------- */}
+        <Card padded={false}>
+          <div style={ENTETE_CARTE}>
+            <h3 style={TITRE_CARTE}>Préférences horaires</h3>
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={grille === undefined}
+              loading={sauvegardePreferences.isPending}
+              onClick={enregistrerPreferences}
+            >
+              Enregistrer
+            </Button>
+          </div>
+          <div style={CORPS_CARTE}>
+            {grille === undefined ? (
+              <EmptyState
+                variant="gated"
+                title="Grille horaire non configurée"
+                description="Configurez d’abord la grille horaire dans le référentiel."
+              />
+            ) : (
+              <>
+                <p
+                  style={{
+                    margin: '0 0 10px',
+                    fontSize: 'var(--text-sm)',
+                    color: 'var(--text-muted)',
+                  }}
+                >
+                  Cliquez sur une cellule pour alterner : neutre → à éviter →
+                  préféré. Enregistrez ensuite vos modifications.
+                </p>
+                <div
+                  style={ENVELOPPE_GRILLE}
+                  onMouseLeave={() => setSurvolPref(null)}
+                >
+                  <table style={TABLE_MINI}>
+                    <thead>
+                      <tr>
+                        <th style={TH_MINI}>Heure</th>
+                        {grille.joursActifs.map((jour) => (
+                          <th key={jour} style={TH_MINI_C}>
+                            {LIBELLES_JOURS[jour]}
+                          </th>
+                        ))}
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-4 text-xs text-neutral-600">
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block h-3 w-3 rounded bg-red-300" />À
-                éviter
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block h-3 w-3 rounded bg-green-300" />
-                Préféré
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block h-3 w-3 rounded bg-neutral-200" />
-                Plage bloquée
-              </span>
-            </div>
-          </>
-        )}
-        {sauvegardePreferences.error !== null && (
-          <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {sauvegardePreferences.error.message}
-          </p>
-        )}
-        {messagePreferences !== null && (
-          <p className="mt-4 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
-            {messagePreferences}
-          </p>
-        )}
-      </Card>
+                    </thead>
+                    <tbody>
+                      {indices.map((index) => {
+                        const bloquee = estPlageBloquee(grille, index);
+                        return (
+                          <tr key={index}>
+                            <td style={TD_MINI}>
+                              {libelleHeure(grille, index)}
+                            </td>
+                            {grille.joursActifs.map((jour) => {
+                              if (bloquee) {
+                                return (
+                                  <td
+                                    key={jour}
+                                    title="Plage bloquée"
+                                    style={{
+                                      ...CELLULE_BASE,
+                                      background: 'var(--neutral-200)',
+                                      cursor: 'default',
+                                    }}
+                                  />
+                                );
+                              }
+                              const cle = `${jour}:${index}`;
+                              const type = preferences[cle];
+                              let fond = 'var(--neutral-50)';
+                              if (type === 'EVITER') {
+                                // Même valeur que la pastille de légende
+                                // ci-dessous, comme dans la maquette.
+                                fond = 'var(--status-danger-bg)';
+                              } else if (type === 'PREFERER') {
+                                fond = 'var(--teal-200)';
+                              } else if (survolPref === cle) {
+                                fond = 'var(--teal-100)';
+                              }
+                              return (
+                                <td
+                                  key={jour}
+                                  title={
+                                    type === 'EVITER'
+                                      ? 'À éviter'
+                                      : type === 'PREFERER'
+                                        ? 'Préféré'
+                                        : 'Neutre'
+                                  }
+                                  style={{
+                                    ...CELLULE_BASE,
+                                    background: fond,
+                                    cursor: 'pointer',
+                                  }}
+                                  onMouseEnter={() => setSurvolPref(cle)}
+                                  onClick={() => cyclerPreference(jour, index)}
+                                />
+                              );
+                            })}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <div style={LEGENDE}>
+                  <span style={LEGENDE_ITEM}>
+                    <span
+                      style={pastilleLegende(
+                        'var(--status-danger-bg)',
+                        'var(--red-100)',
+                      )}
+                    />
+                    À éviter
+                  </span>
+                  <span style={LEGENDE_ITEM}>
+                    <span style={pastilleLegende('var(--teal-200)')} />
+                    Préféré
+                  </span>
+                  <span style={LEGENDE_ITEM}>
+                    <span style={pastilleLegende('var(--neutral-200)')} />
+                    Plage bloquée
+                  </span>
+                </div>
+              </>
+            )}
+            {sauvegardePreferences.error !== null && (
+              <Alert tone="danger" style={{ marginTop: 16 }}>
+                {sauvegardePreferences.error.message}
+              </Alert>
+            )}
+            {messagePreferences !== null && (
+              <Alert tone="success" style={{ marginTop: 16 }}>
+                {messagePreferences}
+              </Alert>
+            )}
+          </div>
+        </Card>
+      </div>
 
       <Dialog
         ouvert={dialogPlage}
         titre="Ajouter une plage d’indisponibilité"
         onFermer={() => setDialogPlage(false)}
       >
-        <form
-          onSubmit={(evenement: FormEvent<HTMLFormElement>) => {
-            evenement.preventDefault();
+        <FormulairePlage
+          formPlage={formPlage}
+          setFormPlage={setFormPlage}
+          grille={grille}
+          enCours={creationIndispo.isPending}
+          erreur={
+            creationIndispo.error !== null ? creationIndispo.error.message : null
+          }
+          onAnnuler={() => setDialogPlage(false)}
+          onValider={() =>
             creationIndispo.mutate({
               jour: formPlage.jour,
               indexDebut: Number(formPlage.indexDebut),
@@ -866,122 +1256,172 @@ export default function PageDetailEnseignant() {
                 formPlage.motif.trim().length > 0
                   ? formPlage.motif.trim()
                   : null,
-            });
-          }}
-          className="space-y-4"
-        >
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <Label htmlFor="jourPlage">Jour</Label>
-              <Select
-                id="jourPlage"
-                value={formPlage.jour}
-                onChange={(e) =>
-                  setFormPlage({ ...formPlage, jour: e.target.value as Jour })
-                }
-              >
-                {(grille?.joursActifs ?? []).map((jour) => (
-                  <option key={jour} value={jour}>
-                    {LIBELLES_JOURS[jour]}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="debutPlage">Index de début</Label>
-              <Input
-                id="debutPlage"
-                type="number"
-                min="0"
-                value={formPlage.indexDebut}
-                onChange={(e) =>
-                  setFormPlage({ ...formPlage, indexDebut: e.target.value })
-                }
-                required
-              />
-              {grille !== undefined && (
-                <p className="mt-1 text-xs text-neutral-500">
-                  {libelleHeure(grille, Number(formPlage.indexDebut) || 0)}
-                </p>
-              )}
-            </div>
-            <div>
-              <Label htmlFor="dureePlage">Durée (unités)</Label>
-              <Input
-                id="dureePlage"
-                type="number"
-                min="1"
-                value={formPlage.dureeUnites}
-                onChange={(e) =>
-                  setFormPlage({ ...formPlage, dureeUnites: e.target.value })
-                }
-                required
-              />
-              <p className="mt-1 text-xs text-neutral-500">
-                {formatUnites(Number(formPlage.dureeUnites) || 0)}
-              </p>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="sourcePlage">Source</Label>
-              <Select
-                id="sourcePlage"
-                value={formPlage.source}
-                onChange={(e) =>
-                  setFormPlage({ ...formPlage, source: e.target.value })
-                }
-              >
-                <option value="DIRECTEUR">Directeur</option>
-                <option value="ENSEIGNANT">Enseignant</option>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="semainePlage">Semaine</Label>
-              <Select
-                id="semainePlage"
-                value={formPlage.semaine}
-                onChange={(e) =>
-                  setFormPlage({
-                    ...formPlage,
-                    semaine: e.target.value as Semaine,
-                  })
-                }
-              >
-                <option value="TOUTES">Toutes les semaines</option>
-                <option value="A">Semaine A</option>
-                <option value="B">Semaine B</option>
-              </Select>
-            </div>
-          </div>
-          <div>
-            <Label htmlFor="motifPlage">Motif (optionnel)</Label>
-            <Input
-              id="motifPlage"
-              value={formPlage.motif}
-              onChange={(e) =>
-                setFormPlage({ ...formPlage, motif: e.target.value })
-              }
-              placeholder="Cours à la faculté, engagement personnel…"
-            />
-          </div>
-
-          {creationIndispo.error !== null && (
-            <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              {creationIndispo.error.message}
-            </p>
-          )}
-
-          <div className="flex justify-end gap-3 pt-2">
-            <Button variante="secondary" onClick={() => setDialogPlage(false)}>
-              Annuler
-            </Button>
-            <Button type="submit" disabled={creationIndispo.isPending}>
-              {creationIndispo.isPending ? 'Création…' : 'Ajouter'}
-            </Button>
-          </div>
-        </form>
+            })
+          }
+        />
       </Dialog>
     </div>
+  );
+}
+
+/** Flèche du lien « Retour aux enseignants » — SVG de la maquette. */
+function FlecheRetour() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ display: 'block' }}
+    >
+      <path d="m12 19-7-7 7-7" />
+      <path d="M19 12H5" />
+    </svg>
+  );
+}
+
+function FormulairePlage({
+  formPlage,
+  setFormPlage,
+  grille,
+  enCours,
+  erreur,
+  onAnnuler,
+  onValider,
+}: {
+  formPlage: typeof FORM_PLAGE_INITIAL;
+  setFormPlage: (valeur: typeof FORM_PLAGE_INITIAL) => void;
+  grille: Grille | undefined;
+  enCours: boolean;
+  erreur: string | null;
+  onAnnuler: () => void;
+  onValider: () => void;
+}) {
+  const debut = Number(formPlage.indexDebut);
+  const duree = Number(formPlage.dureeUnites);
+  const valide =
+    formPlage.indexDebut.trim().length > 0 &&
+    Number.isInteger(debut) &&
+    debut >= 0 &&
+    formPlage.dureeUnites.trim().length > 0 &&
+    Number.isInteger(duree) &&
+    duree >= 1;
+
+  return (
+    <form
+      onSubmit={(evenement: FormEvent<HTMLFormElement>) => {
+        evenement.preventDefault();
+        if (!valide) return;
+        onValider();
+      }}
+      style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
+    >
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+          gap: 16,
+        }}
+      >
+        <Select
+          id="jourPlage"
+          label="Jour"
+          value={formPlage.jour}
+          onChange={(e) =>
+            setFormPlage({ ...formPlage, jour: e.target.value as Jour })
+          }
+        >
+          {(grille?.joursActifs ?? []).map((jour) => (
+            <option key={jour} value={jour}>
+              {LIBELLES_JOURS[jour]}
+            </option>
+          ))}
+        </Select>
+        <Input
+          id="debutPlage"
+          label="Index de début"
+          type="number"
+          min="0"
+          value={formPlage.indexDebut}
+          onChange={(e) =>
+            setFormPlage({ ...formPlage, indexDebut: e.target.value })
+          }
+          hint={
+            grille !== undefined
+              ? libelleHeure(grille, Number.isFinite(debut) ? debut : 0)
+              : undefined
+          }
+        />
+        <Input
+          id="dureePlage"
+          label="Durée (unités)"
+          type="number"
+          min="1"
+          value={formPlage.dureeUnites}
+          onChange={(e) =>
+            setFormPlage({ ...formPlage, dureeUnites: e.target.value })
+          }
+          hint={formatUnites(Number.isFinite(duree) ? duree : 0)}
+        />
+      </div>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+          gap: 16,
+        }}
+      >
+        <Select
+          id="sourcePlage"
+          label="Source"
+          value={formPlage.source}
+          onChange={(e) => setFormPlage({ ...formPlage, source: e.target.value })}
+        >
+          <option value="DIRECTEUR">Directeur</option>
+          <option value="ENSEIGNANT">Enseignant</option>
+        </Select>
+        <Select
+          id="semainePlage"
+          label="Semaine"
+          value={formPlage.semaine}
+          onChange={(e) =>
+            setFormPlage({ ...formPlage, semaine: e.target.value as Semaine })
+          }
+        >
+          <option value="TOUTES">Toutes les semaines</option>
+          <option value="A">Semaine A</option>
+          <option value="B">Semaine B</option>
+        </Select>
+      </div>
+      <Input
+        id="motifPlage"
+        label="Motif (optionnel)"
+        value={formPlage.motif}
+        onChange={(e) => setFormPlage({ ...formPlage, motif: e.target.value })}
+        placeholder="Cours à la faculté, engagement personnel…"
+      />
+
+      {erreur !== null && <Alert tone="danger">{erreur}</Alert>}
+
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          gap: 12,
+          paddingTop: 4,
+        }}
+      >
+        <Button variant="secondary" onClick={onAnnuler}>
+          Annuler
+        </Button>
+        <Button type="submit" disabled={!valide} loading={enCours}>
+          {enCours ? 'Création…' : 'Ajouter'}
+        </Button>
+      </div>
+    </form>
   );
 }

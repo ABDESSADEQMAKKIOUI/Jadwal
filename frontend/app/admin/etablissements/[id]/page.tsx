@@ -139,9 +139,11 @@ export default function PageDetailEtablissement() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-semibold text-neutral-900">
+            {/* Écran de détail : le seul <h1> du document est celui de la barre
+                supérieure d'AppShell, ce titre porte le nom de l'établissement. */}
+            <h2 className="text-xl font-semibold text-neutral-900">
               {etablissement.nom}
-            </h1>
+            </h2>
             <Badge statut={etablissement.statut} />
           </div>
           <p className="mt-1 text-sm text-neutral-500">

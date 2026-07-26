@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
 import { formatUnites } from '@/lib/format';
@@ -13,17 +13,132 @@ import type {
   Niveau,
   VolumeOverride,
 } from '@/lib/types';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Alert, Button, Card, EmptyState, Input, Select } from '@/components/ds';
 import { Dialog } from '@/components/ui/dialog';
-import { EmptyState } from '@/components/ui/empty-state';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
 import { ChargementPage } from '@/components/ui/spinner';
-import { Table, TBody, Td, Th, THead, Tr } from '@/components/ui/table';
+
+/* ------------------------------------------------------------------ */
+/* Chrome de tableau du design system (idiome de la maquette)          */
+/* ------------------------------------------------------------------ */
+
+const TABLEAU: CSSProperties = {
+  width: '100%',
+  borderCollapse: 'collapse',
+  fontSize: 'var(--text-sm)',
+};
+
+const TH: CSSProperties = {
+  textAlign: 'left',
+  padding: '10px 14px',
+  background: 'var(--neutral-50)',
+  borderBottom: 'var(--border-width) solid var(--border-subtle)',
+  fontSize: 'var(--text-2xs)',
+  fontWeight: 'var(--weight-semibold)',
+  letterSpacing: 'var(--tracking-caps)',
+  textTransform: 'uppercase',
+  color: 'var(--text-muted)',
+  whiteSpace: 'nowrap',
+};
+
+const TH_RIGHT: CSSProperties = { ...TH, textAlign: 'right' };
+
+/** Cellule de lecture : hauteur de rangée du design system (44 px). */
+const TD: CSSProperties = {
+  padding: '0 14px',
+  height: 'var(--row-height)',
+  borderBottom: 'var(--border-width) solid var(--neutral-100)',
+  color: 'var(--text-body)',
+  whiteSpace: 'nowrap',
+};
+
+/** Cellule éditable : même gouttière, hauteur libre pour accueillir un contrôle. */
+const TD_EDIT: CSSProperties = {
+  ...TD,
+  height: 'auto',
+  padding: '10px 14px',
+  verticalAlign: 'top',
+};
+
+const TD_RIGHT: CSSProperties = {
+  ...TD,
+  textAlign: 'right',
+  fontVariantNumeric: 'tabular-nums',
+};
+
+const TD_STRONG: CSSProperties = {
+  ...TD,
+  fontWeight: 'var(--weight-medium)',
+  color: 'var(--text-strong)',
+};
+
+/** Valeur héritée : la maquette la met en italique, pas seulement en pâle. */
+const TD_MUTED: CSSProperties = {
+  ...TD,
+  color: 'var(--text-subtle)',
+  fontStyle: 'italic',
+};
+
+const TD_ACTION: CSSProperties = { ...TD_EDIT, textAlign: 'right' };
+
+/** Puce de couleur de matière : carré arrondi 10 × 10, rayon 3 (helper `puce`). */
+const PUCE_MATIERE: CSSProperties = {
+  display: 'inline-block',
+  width: 10,
+  height: 10,
+  borderRadius: 3,
+  flex: 'none',
+};
+
+const ENTETE_CARTE: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 16,
+  padding: '18px 24px',
+  borderBottom: '1px solid var(--border-subtle)',
+};
+
+const TITRE_CARTE: CSSProperties = {
+  margin: 0,
+  fontSize: 'var(--type-card-title-size)',
+  fontWeight: 'var(--type-card-title-weight)',
+  color: 'var(--text-strong)',
+};
+
+const ZONE_TABLEAU: CSSProperties = { overflowX: 'auto' };
+
+const ZONE_ALERTE: CSSProperties = { padding: '14px 24px 0' };
+
+/** Rail de la mini-barre de répartition (maquette : 120 px × 6 px). */
+function railBarre(largeur: number): CSSProperties {
+  return {
+    display: 'block',
+    width: largeur,
+    height: 6,
+    borderRadius: 'var(--radius-pill)',
+    background: 'var(--surface-sunken)',
+    overflow: 'hidden',
+    flex: 'none',
+  };
+}
+
+function remplissageBarre(pourcentage: number, couleur: string): CSSProperties {
+  return {
+    display: 'block',
+    height: '100%',
+    width: `${pourcentage}%`,
+    borderRadius: 'var(--radius-pill)',
+    background: couleur,
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Formulaire de maquette                                              */
+/* ------------------------------------------------------------------ */
 
 interface LigneFormulaire {
+  /** Identité stable côté client : sert de clé React, jamais envoyée à l'API. */
+  cle: string;
   matiereId: string;
   volumeUnites: string;
   volumeUnitesB: string;
@@ -34,7 +149,7 @@ interface LigneFormulaire {
   patterns: string;
 }
 
-const LIGNE_VIDE: LigneFormulaire = {
+const LIGNE_VIDE: Omit<LigneFormulaire, 'cle'> = {
   matiereId: '',
   volumeUnites: '8',
   volumeUnitesB: '',
@@ -44,6 +159,19 @@ const LIGNE_VIDE: LigneFormulaire = {
   coEnseignants: '',
   patterns: '',
 };
+
+/**
+ * Clé de rangée : `crypto.randomUUID` n'est exposé qu'en contexte sécurisé,
+ * d'où le repli sur un compteur de session (unicité suffisante pour React).
+ */
+let compteurLignes = 0;
+function nouvelleCle(): string {
+  compteurLignes += 1;
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `ligne-${compteurLignes}`;
+}
 
 function parserPatterns(texte: string): number[][] {
   return texte
@@ -85,13 +213,9 @@ function aplatirGroupes(groupes: Groupe[]): { id: number; libelle: string }[] {
   return resultat;
 }
 
-function MessageErreur({ message }: { message: string }) {
-  return (
-    <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-      {message}
-    </p>
-  );
-}
+/* ------------------------------------------------------------------ */
+/* Écran                                                               */
+/* ------------------------------------------------------------------ */
 
 export default function PageMaquettes() {
   const queryClient = useQueryClient();
@@ -105,7 +229,7 @@ export default function PageMaquettes() {
     queryKey: ['ecole', 'matieres'],
     queryFn: () => apiFetch<Matiere[]>('/ecole/matieres'),
   });
-  const { data: maquette } = useQuery({
+  const { data: maquette, isFetching: chargementMaquette } = useQuery({
     queryKey: ['ecole', 'maquettes', niveauId],
     queryFn: () =>
       apiFetch<MaquetteLigne[]>(`/ecole/maquettes?niveauId=${niveauId}`),
@@ -120,6 +244,7 @@ export default function PageMaquettes() {
       setMessageMaquette(null);
       setLignes(
         maquette.map((ligne) => ({
+          cle: nouvelleCle(),
           matiereId: String(ligne.matiereId),
           volumeUnites: String(ligne.volumeUnites),
           volumeUnitesB:
@@ -178,29 +303,63 @@ export default function PageMaquettes() {
     );
   }
 
+  function ajouterLigne() {
+    setMessageMaquette(null);
+    setLignes((precedentes) => [
+      ...precedentes,
+      { ...LIGNE_VIDE, cle: nouvelleCle() },
+    ]);
+  }
+
   const totalUnites = lignes.reduce(
     (somme, ligne) => somme + (Number(ligne.volumeUnites) || 0),
     0,
   );
+  /* La maquette normalise la barre de répartition sur la matière la plus
+     lourde (`maxVol`), pas sur le total : sans cela toutes les barres sont
+     quasi vides. `totalUnites` reste le compteur d'en-tête de carte. */
+  const volumeMax = lignes.reduce(
+    (maximum, ligne) => Math.max(maximum, Number(ligne.volumeUnites) || 0),
+    0,
+  );
+
+  const couleursMatieres = new Map(
+    (matieres ?? []).map((matiere) => [String(matiere.id), matiere.couleur]),
+  );
+  const niveauChoisi = (niveaux ?? []).find(
+    (niveau) => String(niveau.id) === niveauId,
+  );
 
   if (isLoading) return <ChargementPage />;
-  if (error !== null) return <MessageErreur message={error.message} />;
+  if (error !== null)
+    return <Alert tone="danger">{error.message}</Alert>;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-neutral-900">Maquettes horaires</h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          Volumes hebdomadaires par niveau et par matière, affectations des
-          enseignants et dérogations de volume par groupe. Unité = 30 minutes.
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'space-between',
+          gap: 16,
+          flexWrap: 'wrap',
+        }}
+      >
+        <p
+          style={{
+            margin: 0,
+            fontSize: 'var(--text-base)',
+            color: 'var(--text-muted)',
+            maxWidth: '62ch',
+          }}
+        >
+          Volumes hebdomadaires par niveau et par matière, affectations et
+          dérogations. Unité = 30 minutes.
         </p>
-      </div>
-
-      <Card titre="Maquette par niveau">
-        <div className="max-w-xs">
-          <Label htmlFor="niveauMaquette">Niveau</Label>
+        <div style={{ width: 220 }}>
           <Select
-            id="niveauMaquette"
+            id="niveau-maquette"
+            label="Niveau"
             value={niveauId}
             onChange={(e) => setNiveauId(e.target.value)}
           >
@@ -212,54 +371,126 @@ export default function PageMaquettes() {
             ))}
           </Select>
         </div>
+      </div>
 
-        {niveauId !== '' && (
-          <div className="mt-5">
-            {lignes.length === 0 ? (
-              <EmptyState message="Aucune ligne. Ajoutez les matières de ce niveau." />
-            ) : (
-              <div className="overflow-x-auto rounded-lg border border-neutral-200">
-                <table className="w-full min-w-max text-left text-sm">
-                  <thead className="bg-neutral-50">
-                    <tr>
-                      <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                        Matière
-                      </th>
-                      <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                        Volume (unités)
-                      </th>
-                      <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                        Vol. semaine B
-                      </th>
-                      <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                        Max / jour
-                      </th>
-                      <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                        Dédoublement
-                      </th>
-                      <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                        Nb sous-grp
-                      </th>
-                      <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                        Co-ens.
-                      </th>
-                      <th className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                        Patterns (ex. « 4,4 | 4,2,2 »)
-                      </th>
-                      <th className="px-3 py-3" />
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-100 bg-white">
-                    {lignes.map((ligne, index) => (
-                      <tr key={index}>
-                        <td className="px-3 py-2">
+      <Card padded={false} style={{ overflow: 'hidden' }}>
+        <div style={ENTETE_CARTE}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
+            <h3 style={TITRE_CARTE}>
+              {niveauChoisi === undefined
+                ? 'Maquette'
+                : `Maquette ${niveauChoisi.libelle}`}
+            </h3>
+            <span
+              style={{
+                fontSize: 'var(--text-sm)',
+                color: 'var(--text-muted)',
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              {totalUnites} unités · {formatUnites(totalUnites)} / semaine
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={niveauId === ''}
+              onClick={ajouterLigne}
+            >
+              Ajouter une ligne
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              loading={sauvegardeMaquette.isPending}
+              disabled={
+                niveauId === '' || lignes.some((ligne) => ligne.matiereId === '')
+              }
+              onClick={() => sauvegardeMaquette.mutate()}
+            >
+              {sauvegardeMaquette.isPending ? 'Enregistrement…' : 'Enregistrer'}
+            </Button>
+          </div>
+        </div>
+
+        {(sauvegardeMaquette.error !== null || messageMaquette !== null) && (
+          <div style={ZONE_ALERTE}>
+            {sauvegardeMaquette.error !== null && (
+              <Alert tone="danger">{sauvegardeMaquette.error.message}</Alert>
+            )}
+            {messageMaquette !== null && (
+              <Alert tone="success">{messageMaquette}</Alert>
+            )}
+          </div>
+        )}
+
+        {niveauId === '' ? (
+          <EmptyState
+            variant="gated"
+            title="Choisissez un niveau"
+            description="La maquette horaire se règle niveau par niveau : sélectionnez-en un pour afficher ses volumes par matière."
+          />
+        ) : chargementMaquette && lignes.length === 0 ? (
+          <ChargementPage />
+        ) : lignes.length === 0 ? (
+          <EmptyState
+            title="Aucune ligne de maquette"
+            description="Ajoutez les matières enseignées à ce niveau, puis leur volume hebdomadaire en unités de 30 minutes."
+            action={
+              <Button variant="primary" size="sm" onClick={ajouterLigne}>
+                Ajouter une ligne
+              </Button>
+            }
+          />
+        ) : (
+          <div style={ZONE_TABLEAU}>
+            <table style={TABLEAU}>
+              <thead>
+                <tr>
+                  <th style={TH}>Matière</th>
+                  <th style={TH_RIGHT}>Volume</th>
+                  <th style={TH_RIGHT}>Sem. B</th>
+                  <th style={TH_RIGHT}>Max / jour</th>
+                  <th style={TH}>Dédoublement</th>
+                  <th style={TH}>Patterns</th>
+                  <th style={TH}>Répartition</th>
+                  <th style={TH_RIGHT} />
+                </tr>
+              </thead>
+              <tbody>
+                {lignes.map((ligne, index) => {
+                  const unites = Number(ligne.volumeUnites) || 0;
+                  const part =
+                    volumeMax > 0
+                      ? Math.min(100, Math.round((unites / volumeMax) * 100))
+                      : 0;
+                  const couleur =
+                    couleursMatieres.get(ligne.matiereId) ??
+                    'var(--color-primary)';
+
+                  return (
+                    <tr key={ligne.cle}>
+                      <td style={TD_EDIT}>
+                        <span
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 10,
+                          }}
+                        >
+                          <span
+                            aria-hidden="true"
+                            style={{ ...PUCE_MATIERE, background: couleur }}
+                          />
                           <Select
+                            size="sm"
+                            aria-label="Matière"
                             value={ligne.matiereId}
                             onChange={(e) =>
                               modifierLigne(index, 'matiereId', e.target.value)
                             }
-                            className="min-w-40"
-                            required
+                            containerStyle={{ minWidth: 168 }}
                           >
                             <option value="">— Matière —</option>
                             {(matieres ?? []).map((matiere) => (
@@ -268,60 +499,64 @@ export default function PageMaquettes() {
                               </option>
                             ))}
                           </Select>
-                        </td>
-                        <td className="px-3 py-2">
-                          <Input
-                            type="number"
-                            min="1"
-                            value={ligne.volumeUnites}
-                            onChange={(e) =>
-                              modifierLigne(
-                                index,
-                                'volumeUnites',
-                                e.target.value,
-                              )
-                            }
-                            className="w-20"
-                            required
-                          />
-                          <p className="mt-1 text-xs text-neutral-500">
-                            {formatUnites(Number(ligne.volumeUnites) || 0)}
-                          </p>
-                        </td>
-                        <td className="px-3 py-2">
-                          <Input
-                            type="number"
-                            min="0"
-                            value={ligne.volumeUnitesB}
-                            onChange={(e) =>
-                              modifierLigne(
-                                index,
-                                'volumeUnitesB',
-                                e.target.value,
-                              )
-                            }
-                            className="w-20"
-                            placeholder="—"
-                          />
-                        </td>
-                        <td className="px-3 py-2">
-                          <Input
-                            type="number"
-                            min="1"
-                            value={ligne.maxParJourUnites}
-                            onChange={(e) =>
-                              modifierLigne(
-                                index,
-                                'maxParJourUnites',
-                                e.target.value,
-                              )
-                            }
-                            className="w-20"
-                            placeholder="—"
-                          />
-                        </td>
-                        <td className="px-3 py-2">
+                        </span>
+                      </td>
+                      <td style={TD_EDIT}>
+                        <Input
+                          size="sm"
+                          type="number"
+                          min="1"
+                          aria-label="Volume en unités"
+                          value={ligne.volumeUnites}
+                          onChange={(e) =>
+                            modifierLigne(index, 'volumeUnites', e.target.value)
+                          }
+                          hint={formatUnites(unites)}
+                          containerStyle={{ width: 76 }}
+                          style={{ textAlign: 'right' }}
+                        />
+                      </td>
+                      <td style={TD_EDIT}>
+                        <Input
+                          size="sm"
+                          type="number"
+                          min="0"
+                          placeholder="—"
+                          aria-label="Volume de la semaine B"
+                          value={ligne.volumeUnitesB}
+                          onChange={(e) =>
+                            modifierLigne(index, 'volumeUnitesB', e.target.value)
+                          }
+                          containerStyle={{ width: 76 }}
+                          style={{ textAlign: 'right' }}
+                        />
+                      </td>
+                      <td style={TD_EDIT}>
+                        <Input
+                          size="sm"
+                          type="number"
+                          min="1"
+                          placeholder="—"
+                          aria-label="Maximum par jour, en unités"
+                          value={ligne.maxParJourUnites}
+                          onChange={(e) =>
+                            modifierLigne(
+                              index,
+                              'maxParJourUnites',
+                              e.target.value,
+                            )
+                          }
+                          containerStyle={{ width: 76 }}
+                          style={{ textAlign: 'right' }}
+                        />
+                      </td>
+                      <td style={TD_EDIT}>
+                        <span
+                          style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                        >
                           <Select
+                            size="sm"
+                            aria-label="Dédoublement"
                             value={ligne.dedoublement}
                             onChange={(e) =>
                               modifierLigne(
@@ -330,7 +565,7 @@ export default function PageMaquettes() {
                                 e.target.value,
                               )
                             }
-                            className="min-w-36"
+                            containerStyle={{ minWidth: 148 }}
                           >
                             <option value="AUCUN">Aucun</option>
                             <option value="SOUS_GROUPES">Sous-groupes</option>
@@ -338,108 +573,96 @@ export default function PageMaquettes() {
                               Co-enseignement
                             </option>
                           </Select>
-                        </td>
-                        <td className="px-3 py-2">
-                          <Input
-                            type="number"
-                            min="2"
-                            value={ligne.nbSousGroupes}
-                            onChange={(e) =>
-                              modifierLigne(
-                                index,
-                                'nbSousGroupes',
-                                e.target.value,
-                              )
-                            }
-                            className="w-16"
-                            placeholder="—"
-                          />
-                        </td>
-                        <td className="px-3 py-2">
-                          <Input
-                            type="number"
-                            min="2"
-                            value={ligne.coEnseignants}
-                            onChange={(e) =>
-                              modifierLigne(
-                                index,
-                                'coEnseignants',
-                                e.target.value,
-                              )
-                            }
-                            className="w-16"
-                            placeholder="—"
-                          />
-                        </td>
-                        <td className="px-3 py-2">
-                          <Input
-                            value={ligne.patterns}
-                            onChange={(e) =>
-                              modifierLigne(index, 'patterns', e.target.value)
-                            }
-                            className="w-40"
-                            placeholder="4,4 | 4,2,2"
-                          />
-                        </td>
-                        <td className="px-3 py-2 text-right">
-                          <Button
-                            variante="ghost"
-                            taille="sm"
-                            className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                            onClick={() =>
-                              setLignes((precedentes) =>
-                                precedentes.filter((_ligne, i) => i !== index),
-                              )
-                            }
-                          >
-                            Retirer
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-4">
-                <Button
-                  variante="secondary"
-                  onClick={() =>
-                    setLignes((precedentes) => [...precedentes, { ...LIGNE_VIDE }])
-                  }
-                >
-                  Ajouter une ligne
-                </Button>
-                <p className="text-sm text-neutral-600">
-                  Total : <span className="font-semibold">{totalUnites}</span>{' '}
-                  unités ({formatUnites(totalUnites)})
-                </p>
-              </div>
-              <Button
-                disabled={
-                  sauvegardeMaquette.isPending ||
-                  lignes.some((ligne) => ligne.matiereId === '')
-                }
-                onClick={() => sauvegardeMaquette.mutate()}
-              >
-                {sauvegardeMaquette.isPending
-                  ? 'Enregistrement…'
-                  : 'Enregistrer la maquette'}
-              </Button>
-            </div>
-
-            {sauvegardeMaquette.error !== null && (
-              <div className="mt-4">
-                <MessageErreur message={sauvegardeMaquette.error.message} />
-              </div>
-            )}
-            {messageMaquette !== null && (
-              <p className="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-                {messageMaquette}
-              </p>
-            )}
+                          {ligne.dedoublement === 'SOUS_GROUPES' && (
+                            <Input
+                              size="sm"
+                              type="number"
+                              min="2"
+                              placeholder="Nb"
+                              title="Nombre de sous-groupes"
+                              aria-label="Nombre de sous-groupes"
+                              value={ligne.nbSousGroupes}
+                              onChange={(e) =>
+                                modifierLigne(
+                                  index,
+                                  'nbSousGroupes',
+                                  e.target.value,
+                                )
+                              }
+                              containerStyle={{ width: 68 }}
+                              style={{ textAlign: 'right' }}
+                            />
+                          )}
+                          {ligne.dedoublement === 'CO_ENSEIGNEMENT' && (
+                            <Input
+                              size="sm"
+                              type="number"
+                              min="2"
+                              placeholder="Nb"
+                              title="Nombre de co-enseignants"
+                              aria-label="Nombre de co-enseignants"
+                              value={ligne.coEnseignants}
+                              onChange={(e) =>
+                                modifierLigne(
+                                  index,
+                                  'coEnseignants',
+                                  e.target.value,
+                                )
+                              }
+                              containerStyle={{ width: 68 }}
+                              style={{ textAlign: 'right' }}
+                            />
+                          )}
+                        </span>
+                      </td>
+                      <td style={TD_EDIT}>
+                        <Input
+                          size="sm"
+                          placeholder="4,4 | 4,2,2"
+                          aria-label="Patterns de séances"
+                          value={ligne.patterns}
+                          onChange={(e) =>
+                            modifierLigne(index, 'patterns', e.target.value)
+                          }
+                          containerStyle={{ width: 152 }}
+                          style={{ fontFamily: 'var(--font-mono)' }}
+                        />
+                      </td>
+                      <td style={TD_EDIT}>
+                        <span
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 10,
+                            height: 'var(--control-height-sm)',
+                          }}
+                          title={`${formatUnites(unites)} — ${part} % de la matière la plus lourde`}
+                        >
+                          <span style={railBarre(120)}>
+                            <span style={remplissageBarre(part, couleur)} />
+                          </span>
+                        </span>
+                      </td>
+                      <td
+                        style={TD_ACTION}
+                      >
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            setLignes((precedentes) =>
+                              precedentes.filter((_ligne, i) => i !== index),
+                            )
+                          }
+                        >
+                          Retirer
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </Card>
@@ -512,13 +735,18 @@ function SectionAffectations() {
   });
 
   const groupesAplatis = aplatirGroupes(groupes ?? []);
+  const formulaireIncomplet =
+    formulaire.groupeId === '' ||
+    formulaire.matiereId === '' ||
+    formulaire.enseignantId === '';
 
   return (
-    <Card
-      titre="Affectations (qui enseigne quoi à qui)"
-      actions={
+    <Card padded={false} style={{ overflow: 'hidden' }}>
+      <div style={ENTETE_CARTE}>
+        <h3 style={TITRE_CARTE}>Affectations · qui enseigne quoi à qui</h3>
         <Button
-          taille="sm"
+          variant="primary"
+          size="sm"
           onClick={() => {
             creation.reset();
             suppression.reset();
@@ -528,67 +756,88 @@ function SectionAffectations() {
         >
           Nouvelle affectation
         </Button>
-      }
-    >
-      {isLoading && <ChargementPage />}
-      {error !== null && <MessageErreur message={error.message} />}
-      {suppression.error !== null && (
-        <div className="mb-4">
-          <MessageErreur message={suppression.error.message} />
+      </div>
+
+      {(error !== null || suppression.error !== null) && (
+        <div style={ZONE_ALERTE}>
+          {error !== null && <Alert tone="danger">{error.message}</Alert>}
+          {suppression.error !== null && (
+            <Alert tone="danger">{suppression.error.message}</Alert>
+          )}
         </div>
       )}
 
+      {isLoading && <ChargementPage />}
+
       {affectations !== undefined &&
         (affectations.length === 0 ? (
-          <EmptyState message="Aucune affectation pour le moment." />
+          <EmptyState
+            title="Aucune affectation"
+            description="Une affectation relie un groupe, une matière et un enseignant. Sans elles, la génération n'a rien à placer."
+          />
         ) : (
-          <Table>
-            <THead>
-              <Tr>
-                <Th>Groupe</Th>
-                <Th>Matière</Th>
-                <Th>Enseignant</Th>
-                <Th>Volume</Th>
-                <Th className="text-right">Actions</Th>
-              </Tr>
-            </THead>
-            <TBody>
-              {affectations.map((affectation) => (
-                <Tr key={affectation.id}>
-                  <Td className="font-medium text-neutral-900">
-                    {affectation.groupeLibelle}
-                  </Td>
-                  <Td>{affectation.matiereLibelle}</Td>
-                  <Td>{affectation.enseignantNom}</Td>
-                  <Td>
-                    {affectation.volumeUnites === null ? (
-                      <span className="text-neutral-500">Hérité de la maquette</span>
-                    ) : (
-                      formatUnites(affectation.volumeUnites)
-                    )}
-                  </Td>
-                  <Td className="text-right">
-                    <Button
-                      variante="danger"
-                      taille="sm"
-                      disabled={suppression.isPending}
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            `Supprimer l’affectation « ${affectation.matiereLibelle} — ${affectation.groupeLibelle} » ?`,
-                          )
-                        ) {
-                          suppression.mutate(affectation.id);
-                        }
-                      }}
-                    >
-                      Supprimer
-                    </Button>
-                  </Td>
-                </Tr>
-              ))}
-            </TBody>
-          </Table>
+          <div style={ZONE_TABLEAU}>
+            <table style={TABLEAU}>
+              <thead>
+                <tr>
+                  <th style={TH}>Groupe</th>
+                  <th style={TH}>Matière</th>
+                  <th style={TH}>Enseignant</th>
+                  <th style={TH}>Volume</th>
+                  <th style={TH_RIGHT}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {affectations.map((affectation) => {
+                  return (
+                    <tr key={affectation.id}>
+                      <td style={TD_STRONG}>
+                        {affectation.groupeLibelle}
+                      </td>
+                      <td style={TD}>
+                        {affectation.matiereLibelle}
+                      </td>
+                      <td style={TD}>
+                        {affectation.enseignantNom}
+                      </td>
+                      {affectation.volumeUnites === null ? (
+                        <td style={TD_MUTED}>
+                          Hérité de la maquette
+                        </td>
+                      ) : (
+                        <td
+                          style={{
+                            ...TD,
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
+                        >
+                          {formatUnites(affectation.volumeUnites)}
+                        </td>
+                      )}
+                      <td style={TD_RIGHT}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={suppression.isPending}
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                `Supprimer l’affectation « ${affectation.matiereLibelle} — ${affectation.groupeLibelle} » ?`,
+                              )
+                            ) {
+                              suppression.mutate(affectation.id);
+                            }
+                          }}
+                        >
+                          Supprimer
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         ))}
 
       <Dialog
@@ -599,94 +848,97 @@ function SectionAffectations() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
+            if (formulaireIncomplet) return;
             creation.mutate();
           }}
-          className="space-y-4"
+          style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
         >
-          <div>
-            <Label htmlFor="groupeAffectation">Groupe</Label>
-            <Select
-              id="groupeAffectation"
-              value={formulaire.groupeId}
-              onChange={(e) =>
-                setFormulaire({ ...formulaire, groupeId: e.target.value })
-              }
-              required
-            >
-              <option value="">— Choisir un groupe —</option>
-              {groupesAplatis.map((groupe) => (
-                <option key={groupe.id} value={groupe.id}>
-                  {groupe.libelle}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="matiereAffectation">Matière</Label>
-            <Select
-              id="matiereAffectation"
-              value={formulaire.matiereId}
-              onChange={(e) =>
-                setFormulaire({ ...formulaire, matiereId: e.target.value })
-              }
-              required
-            >
-              <option value="">— Choisir une matière —</option>
-              {(matieres ?? []).map((matiere) => (
-                <option key={matiere.id} value={matiere.id}>
-                  {matiere.libelle}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="enseignantAffectation">Enseignant</Label>
-            <Select
-              id="enseignantAffectation"
-              value={formulaire.enseignantId}
-              onChange={(e) =>
-                setFormulaire({ ...formulaire, enseignantId: e.target.value })
-              }
-              required
-            >
-              <option value="">— Choisir un enseignant —</option>
-              {(enseignants ?? []).map((enseignant) => (
-                <option key={enseignant.id} value={enseignant.id}>
-                  {enseignant.nomComplet}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="volumeAffectation">
-              Volume (unités, optionnel)
-            </Label>
-            <Input
-              id="volumeAffectation"
-              type="number"
-              min="1"
-              value={formulaire.volumeUnites}
-              onChange={(e) =>
-                setFormulaire({ ...formulaire, volumeUnites: e.target.value })
-              }
-              placeholder="Vide = volume de la maquette"
-            />
-            {formulaire.volumeUnites.trim().length > 0 && (
-              <p className="mt-1 text-xs text-neutral-500">
-                Soit {formatUnites(Number(formulaire.volumeUnites) || 0)}.
-              </p>
-            )}
-          </div>
+          <Select
+            id="affectation-groupe"
+            label="Groupe"
+            required
+            value={formulaire.groupeId}
+            onChange={(e) =>
+              setFormulaire({ ...formulaire, groupeId: e.target.value })
+            }
+          >
+            <option value="">— Choisir un groupe —</option>
+            {groupesAplatis.map((groupe) => (
+              <option key={groupe.id} value={groupe.id}>
+                {groupe.libelle}
+              </option>
+            ))}
+          </Select>
+          <Select
+            id="affectation-matiere"
+            label="Matière"
+            required
+            value={formulaire.matiereId}
+            onChange={(e) =>
+              setFormulaire({ ...formulaire, matiereId: e.target.value })
+            }
+          >
+            <option value="">— Choisir une matière —</option>
+            {(matieres ?? []).map((matiere) => (
+              <option key={matiere.id} value={matiere.id}>
+                {matiere.libelle}
+              </option>
+            ))}
+          </Select>
+          <Select
+            id="affectation-enseignant"
+            label="Enseignant"
+            required
+            value={formulaire.enseignantId}
+            onChange={(e) =>
+              setFormulaire({ ...formulaire, enseignantId: e.target.value })
+            }
+          >
+            <option value="">— Choisir un enseignant —</option>
+            {(enseignants ?? []).map((enseignant) => (
+              <option key={enseignant.id} value={enseignant.id}>
+                {enseignant.nomComplet}
+              </option>
+            ))}
+          </Select>
+          <Input
+            id="affectation-volume"
+            label="Volume (unités, optionnel)"
+            type="number"
+            min="1"
+            value={formulaire.volumeUnites}
+            onChange={(e) =>
+              setFormulaire({ ...formulaire, volumeUnites: e.target.value })
+            }
+            placeholder="Vide = volume de la maquette"
+            hint={
+              formulaire.volumeUnites.trim().length > 0
+                ? `Soit ${formatUnites(Number(formulaire.volumeUnites) || 0)}.`
+                : undefined
+            }
+          />
 
           {creation.error !== null && (
-            <MessageErreur message={creation.error.message} />
+            <Alert tone="danger">{creation.error.message}</Alert>
           )}
 
-          <div className="flex justify-end gap-3 pt-2">
-            <Button variante="secondary" onClick={() => setDialogOuvert(false)}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: 12,
+              paddingTop: 4,
+            }}
+          >
+            <Button variant="secondary" onClick={() => setDialogOuvert(false)}>
               Annuler
             </Button>
-            <Button type="submit" disabled={creation.isPending}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={creation.isPending}
+              disabled={formulaireIncomplet}
+            >
               {creation.isPending ? 'Création…' : 'Créer'}
             </Button>
           </div>
@@ -697,7 +949,7 @@ function SectionAffectations() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Overrides de volume par groupe                                     */
+/* Dérogations de volume par groupe                                   */
 /* ------------------------------------------------------------------ */
 
 const FORM_OVERRIDE_INITIAL = { groupeId: '', matiereId: '', volumeUnites: '' };
@@ -759,12 +1011,30 @@ function SectionOverrides() {
     onSuccess: invalider,
   });
 
+  const formulaireIncomplet =
+    formulaire.groupeId === '' ||
+    formulaire.matiereId === '' ||
+    formulaire.volumeUnites.trim().length === 0;
+
   return (
-    <Card
-      titre="Dérogations de volume par groupe"
-      actions={
+    <Card padded={false} style={{ overflow: 'hidden' }}>
+      <div style={{ ...ENTETE_CARTE, alignItems: 'flex-start' }}>
+        <div>
+          <h3 style={TITRE_CARTE}>Dérogations de volume par groupe</h3>
+          <p
+            style={{
+              margin: '4px 0 0',
+              fontSize: 'var(--text-sm)',
+              color: 'var(--text-muted)',
+            }}
+          >
+            Remplace ponctuellement le volume de la maquette pour un groupe donné
+            (ex. classe à option renforcée).
+          </p>
+        </div>
         <Button
-          taille="sm"
+          variant="primary"
+          size="sm"
           onClick={() => {
             creation.reset();
             suppression.reset();
@@ -774,66 +1044,73 @@ function SectionOverrides() {
         >
           Nouvelle dérogation
         </Button>
-      }
-    >
-      <p className="mb-4 text-sm text-neutral-500">
-        Remplace ponctuellement le volume de la maquette pour un groupe donné
-        (ex. classe à option renforcée).
-      </p>
-      {isLoading && <ChargementPage />}
-      {error !== null && <MessageErreur message={error.message} />}
-      {suppression.error !== null && (
-        <div className="mb-4">
-          <MessageErreur message={suppression.error.message} />
+      </div>
+
+      {(error !== null || suppression.error !== null) && (
+        <div style={ZONE_ALERTE}>
+          {error !== null && <Alert tone="danger">{error.message}</Alert>}
+          {suppression.error !== null && (
+            <Alert tone="danger">{suppression.error.message}</Alert>
+          )}
         </div>
       )}
 
+      {isLoading && <ChargementPage />}
+
       {overrides !== undefined &&
         (overrides.length === 0 ? (
-          <EmptyState message="Aucune dérogation de volume." />
+          <EmptyState
+            variant="gated"
+            title="Aucune dérogation de volume"
+            description="Tous les groupes suivent le volume de la maquette de leur niveau."
+          />
         ) : (
-          <Table>
-            <THead>
-              <Tr>
-                <Th>Groupe</Th>
-                <Th>Matière</Th>
-                <Th>Volume</Th>
-                <Th className="text-right">Actions</Th>
-              </Tr>
-            </THead>
-            <TBody>
-              {overrides.map((override) => (
-                <Tr key={override.id}>
-                  <Td className="font-medium text-neutral-900">
-                    {libellesGroupes.get(override.groupeId) ??
-                      `Groupe ${override.groupeId}`}
-                  </Td>
-                  <Td>
-                    {libellesMatieres.get(override.matiereId) ??
-                      `Matière ${override.matiereId}`}
-                  </Td>
-                  <Td>
-                    {override.volumeUnites} unités (
-                    {formatUnites(override.volumeUnites)})
-                  </Td>
-                  <Td className="text-right">
-                    <Button
-                      variante="danger"
-                      taille="sm"
-                      disabled={suppression.isPending}
-                      onClick={() => {
-                        if (window.confirm('Supprimer cette dérogation ?')) {
-                          suppression.mutate(override);
-                        }
-                      }}
-                    >
-                      Supprimer
-                    </Button>
-                  </Td>
-                </Tr>
-              ))}
-            </TBody>
-          </Table>
+          <div style={ZONE_TABLEAU}>
+            <table style={TABLEAU}>
+              <thead>
+                <tr>
+                  <th style={TH}>Groupe</th>
+                  <th style={TH}>Matière</th>
+                  <th style={TH_RIGHT}>Volume</th>
+                  <th style={TH_RIGHT}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {overrides.map((override) => {
+                  return (
+                    <tr key={override.id}>
+                      <td style={TD_STRONG}>
+                        {libellesGroupes.get(override.groupeId) ??
+                          `Groupe ${override.groupeId}`}
+                      </td>
+                      <td style={TD}>
+                        {libellesMatieres.get(override.matiereId) ??
+                          `Matière ${override.matiereId}`}
+                      </td>
+                      <td style={TD_RIGHT}>
+                        {override.volumeUnites} unités ·{' '}
+                        {formatUnites(override.volumeUnites)}
+                      </td>
+                      <td style={TD_RIGHT}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={suppression.isPending}
+                          onClick={() => {
+                            if (window.confirm('Supprimer cette dérogation ?')) {
+                              suppression.mutate(override);
+                            }
+                          }}
+                        >
+                          Supprimer
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         ))}
 
       <Dialog
@@ -844,72 +1121,77 @@ function SectionOverrides() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
+            if (formulaireIncomplet) return;
             creation.mutate();
           }}
-          className="space-y-4"
+          style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
         >
-          <div>
-            <Label htmlFor="groupeOverride">Groupe</Label>
-            <Select
-              id="groupeOverride"
-              value={formulaire.groupeId}
-              onChange={(e) =>
-                setFormulaire({ ...formulaire, groupeId: e.target.value })
-              }
-              required
-            >
-              <option value="">— Choisir un groupe —</option>
-              {groupesAplatis.map((groupe) => (
-                <option key={groupe.id} value={groupe.id}>
-                  {groupe.libelle}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="matiereOverride">Matière</Label>
-            <Select
-              id="matiereOverride"
-              value={formulaire.matiereId}
-              onChange={(e) =>
-                setFormulaire({ ...formulaire, matiereId: e.target.value })
-              }
-              required
-            >
-              <option value="">— Choisir une matière —</option>
-              {(matieres ?? []).map((matiere) => (
-                <option key={matiere.id} value={matiere.id}>
-                  {matiere.libelle}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="volumeOverride">Volume (unités)</Label>
-            <Input
-              id="volumeOverride"
-              type="number"
-              min="1"
-              value={formulaire.volumeUnites}
-              onChange={(e) =>
-                setFormulaire({ ...formulaire, volumeUnites: e.target.value })
-              }
-              required
-            />
-            <p className="mt-1 text-xs text-neutral-500">
-              Soit {formatUnites(Number(formulaire.volumeUnites) || 0)}.
-            </p>
-          </div>
+          <Select
+            id="derogation-groupe"
+            label="Groupe"
+            required
+            value={formulaire.groupeId}
+            onChange={(e) =>
+              setFormulaire({ ...formulaire, groupeId: e.target.value })
+            }
+          >
+            <option value="">— Choisir un groupe —</option>
+            {groupesAplatis.map((groupe) => (
+              <option key={groupe.id} value={groupe.id}>
+                {groupe.libelle}
+              </option>
+            ))}
+          </Select>
+          <Select
+            id="derogation-matiere"
+            label="Matière"
+            required
+            value={formulaire.matiereId}
+            onChange={(e) =>
+              setFormulaire({ ...formulaire, matiereId: e.target.value })
+            }
+          >
+            <option value="">— Choisir une matière —</option>
+            {(matieres ?? []).map((matiere) => (
+              <option key={matiere.id} value={matiere.id}>
+                {matiere.libelle}
+              </option>
+            ))}
+          </Select>
+          <Input
+            id="derogation-volume"
+            label="Volume (unités)"
+            required
+            type="number"
+            min="1"
+            value={formulaire.volumeUnites}
+            onChange={(e) =>
+              setFormulaire({ ...formulaire, volumeUnites: e.target.value })
+            }
+            hint={`Soit ${formatUnites(Number(formulaire.volumeUnites) || 0)}.`}
+          />
 
           {creation.error !== null && (
-            <MessageErreur message={creation.error.message} />
+            <Alert tone="danger">{creation.error.message}</Alert>
           )}
 
-          <div className="flex justify-end gap-3 pt-2">
-            <Button variante="secondary" onClick={() => setDialogOuvert(false)}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: 12,
+              paddingTop: 4,
+            }}
+          >
+            <Button variant="secondary" onClick={() => setDialogOuvert(false)}>
               Annuler
             </Button>
-            <Button type="submit" disabled={creation.isPending}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={creation.isPending}
+              disabled={formulaireIncomplet}
+            >
               {creation.isPending ? 'Création…' : 'Créer'}
             </Button>
           </div>

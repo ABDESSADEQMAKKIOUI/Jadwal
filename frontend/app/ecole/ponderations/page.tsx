@@ -1,25 +1,40 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { apiFetch } from '@/lib/api';
 import type { Ponderation } from '@/lib/types-planning';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { EmptyState } from '@/components/ui/empty-state';
+import { Alert, Button, Card, EmptyState } from '@/components/ds';
 import { ChargementPage } from '@/components/ui/spinner';
 
 const LIBELLES_FAMILLES: Record<string, string> = {
-  RYTHME: 'Rythme (G-*)',
-  EQUILIBRAGE: 'Équilibrage (F-*)',
-  PREFERENCES: 'Préférences (D-* / E-*)',
+  RYTHME: 'Rythme · G-*',
+  EQUILIBRAGE: 'Équilibrage · F-*',
+  PREFERENCES: 'Préférences · D-* / E-*',
 };
 
 const ORDRE_FAMILLES = ['RYTHME', 'EQUILIBRAGE', 'PREFERENCES'];
 
 function libelleFamille(famille: string): string {
   return LIBELLES_FAMILLES[famille] ?? famille;
+}
+
+/** Pastille de valeur : teal dès 70, neutre en dessous (règle de la maquette). */
+function stylePastille(poids: number): CSSProperties {
+  const fort = poids >= 70;
+  return {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 38,
+    borderRadius: 'var(--radius-xs)',
+    padding: '3px 8px',
+    fontSize: 'var(--text-sm)',
+    fontWeight: 'var(--weight-semibold)',
+    fontVariantNumeric: 'tabular-nums',
+    background: fort ? 'var(--surface-selected)' : 'var(--surface-sunken)',
+    color: fort ? 'var(--teal-700)' : 'var(--text-body)',
+  };
 }
 
 export default function PagePonderations() {
@@ -68,9 +83,9 @@ export default function PagePonderations() {
 
   if (requetePonderations.error !== null) {
     return (
-      <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      <Alert tone="danger" title="Chargement impossible">
         {requetePonderations.error.message}
-      </p>
+      </Alert>
     );
   }
 
@@ -88,104 +103,171 @@ export default function PagePonderations() {
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-neutral-900">Pondérations</h1>
-          <p className="mt-1 text-sm text-neutral-500">
-            Réglez l’importance de chaque règle souple pour le moteur de
-            génération.
-          </p>
-        </div>
-        <Link
-          href="/ecole/generation"
-          className="text-sm font-medium text-teal-600 hover:text-teal-800"
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'space-between',
+          gap: 16,
+          flexWrap: 'wrap',
+        }}
+      >
+        <p
+          style={{
+            margin: 0,
+            fontSize: 'var(--text-base)',
+            color: 'var(--text-muted)',
+            maxWidth: '62ch',
+          }}
         >
-          ← Retour à la génération
-        </Link>
+          Réglez l’importance de chaque règle souple pour le moteur de
+          génération.
+        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {enregistre && !enregistrer.isPending && (
+            <span
+              style={{
+                fontSize: 'var(--text-sm)',
+                fontWeight: 'var(--weight-medium)',
+                color: 'var(--status-success-fg)',
+              }}
+            >
+              Pondérations enregistrées.
+            </span>
+          )}
+          <Button
+            variant="primary"
+            size="md"
+            loading={enregistrer.isPending}
+            disabled={ponderations.length === 0}
+            onClick={() => enregistrer.mutate()}
+          >
+            Enregistrer les pondérations
+          </Button>
+        </div>
       </div>
 
-      <p className="rounded-lg border border-teal-100 bg-teal-50 px-4 py-3 text-sm text-teal-900">
+      {enregistrer.error !== null && (
+        <Alert tone="danger" title="Enregistrement impossible">
+          {enregistrer.error.message}
+        </Alert>
+      )}
+
+      <Alert tone="neutral">
         Les règles dures (conflits d’enseignants, de salles, de groupes…) ne
         sont pas paramétrables : elles sont toujours strictement respectées.
-      </p>
+      </Alert>
 
       {ponderations.length === 0 ? (
-        <EmptyState message="Aucune règle souple disponible." />
+        <Card padded={false}>
+          <EmptyState
+            variant="gated"
+            title="Aucune règle souple"
+            description="Aucune règle souple n’est disponible pour cet établissement."
+          />
+        </Card>
       ) : (
-        <>
-          {familles.map((famille) => (
-            <Card key={famille} titre={libelleFamille(famille)}>
-              <ul className="divide-y divide-neutral-100">
-                {ponderations
-                  .filter((ponderation) => ponderation.famille === famille)
-                  .map((ponderation) => {
-                    const valeur =
-                      poidsParRegle[ponderation.regle] ?? ponderation.poids;
-                    return (
-                      <li
-                        key={ponderation.regle}
-                        className="flex flex-wrap items-center gap-4 py-3"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-neutral-900">
-                            <span className="mr-2 font-mono text-xs font-semibold text-neutral-500">
-                              {ponderation.regle}
-                            </span>
-                            {ponderation.libelle}
-                          </p>
-                        </div>
-                        <div className="flex w-full items-center gap-3 sm:w-72">
-                          <input
-                            type="range"
-                            min={0}
-                            max={100}
-                            step={1}
-                            value={valeur}
-                            aria-label={`Poids de la règle ${ponderation.regle}`}
-                            onChange={(evenement) => {
-                              setEnregistre(false);
-                              setPoidsParRegle((precedent) => ({
-                                ...precedent,
-                                [ponderation.regle]: Number(
-                                  evenement.target.value,
-                                ),
-                              }));
-                            }}
-                            className="h-2 w-full cursor-pointer accent-teal-600"
-                          />
-                          <span className="w-10 shrink-0 text-right text-sm font-semibold tabular-nums text-neutral-900">
-                            {valeur}
-                          </span>
-                        </div>
-                      </li>
-                    );
-                  })}
-              </ul>
-            </Card>
-          ))}
-
-          <div className="flex items-center gap-3">
-            <Button
-              disabled={enregistrer.isPending}
-              onClick={() => enregistrer.mutate()}
+        familles.map((famille) => (
+          <Card key={famille} padded={false}>
+            <div
+              style={{
+                padding: '18px 24px',
+                borderBottom: '1px solid var(--border-subtle)',
+              }}
             >
-              {enregistrer.isPending
-                ? 'Enregistrement…'
-                : 'Enregistrer les pondérations'}
-            </Button>
-            {enregistre && (
-              <span className="text-sm font-medium text-green-700">
-                Pondérations enregistrées.
-              </span>
-            )}
-            {enregistrer.error !== null && (
-              <span className="text-sm text-red-700">
-                {enregistrer.error.message}
-              </span>
-            )}
-          </div>
-        </>
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: 'var(--type-card-title-size)',
+                  fontWeight: 'var(--type-card-title-weight)',
+                  color: 'var(--text-strong)',
+                }}
+              >
+                {libelleFamille(famille)}
+              </h3>
+            </div>
+            <div style={{ padding: '6px 24px 18px' }}>
+              {ponderations
+                .filter((ponderation) => ponderation.famille === famille)
+                .map((ponderation) => {
+                  const valeur =
+                    poidsParRegle[ponderation.regle] ?? ponderation.poids;
+                  return (
+                    <div
+                      key={ponderation.regle}
+                      style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        alignItems: 'center',
+                        gap: 20,
+                        padding: '14px 0',
+                        borderBottom: '1px solid var(--neutral-100)',
+                      }}
+                    >
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <p
+                          style={{
+                            margin: 0,
+                            fontSize: 'var(--text-base)',
+                            color: 'var(--text-strong)',
+                          }}
+                        >
+                          <span
+                            style={{
+                              marginRight: 8,
+                              fontFamily: 'var(--font-mono)',
+                              fontSize: 'var(--text-xs)',
+                              fontWeight: 'var(--weight-semibold)',
+                              color: 'var(--text-subtle)',
+                            }}
+                          >
+                            {ponderation.regle}
+                          </span>
+                          {ponderation.libelle}
+                        </p>
+                      </div>
+                      <div
+                        style={{
+                          display: 'flex',
+                          width: 300,
+                          maxWidth: '100%',
+                          alignItems: 'center',
+                          gap: 14,
+                        }}
+                      >
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          step={1}
+                          value={valeur}
+                          aria-label={`Poids de la règle ${ponderation.regle}`}
+                          onChange={(evenement) => {
+                            setEnregistre(false);
+                            setPoidsParRegle((precedent) => ({
+                              ...precedent,
+                              [ponderation.regle]: Number(
+                                evenement.target.value,
+                              ),
+                            }));
+                          }}
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            height: 4,
+                            cursor: 'pointer',
+                            accentColor: 'var(--color-primary)',
+                          }}
+                        />
+                        <span style={stylePastille(valeur)}>{valeur}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </Card>
+        ))
       )}
     </div>
   );

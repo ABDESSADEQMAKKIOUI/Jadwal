@@ -35,6 +35,12 @@ const LIBELLES_BLOCAGES: Record<string, string> = {
   PAUSE: 'Pause',
 };
 
+/** Géométrie de la maquette : hauteur d'en-tête, hauteur de ligne, largeur des heures. */
+const HAUTEUR_ENTETE = 38;
+const HAUTEUR_LIGNE = 44;
+const LARGEUR_HEURES = 68;
+const LARGEUR_MIN_JOUR = 150;
+
 /** "08:00" + index unités -> "09:30" (unités de dureeUniteMinutes minutes). */
 export function formatHeure(
   heureDebut: string,
@@ -63,10 +69,26 @@ export function formatDureeUnites(
   return `${h}h${String(m).padStart(2, '0')}`;
 }
 
-const HACHURES: CSSProperties = {
-  backgroundImage:
-    'repeating-linear-gradient(45deg, #f3f4f6 0px, #f3f4f6 6px, #e5e7eb 6px, #e5e7eb 12px)',
-};
+/** Style d'une plage bloquée (déjeuner, pause) — repris de la maquette. */
+function styleBlocage(colonne: number, debut: number, duree: number): CSSProperties {
+  return {
+    gridColumn: colonne,
+    gridRow: `${debut + 2} / span ${duree}`,
+    zIndex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'var(--neutral-100)',
+    borderRight: '1px solid var(--border-subtle)',
+    borderTop: '1px solid var(--border-subtle)',
+    borderBottom: '1px solid var(--border-subtle)',
+    fontSize: 'var(--text-2xs)',
+    fontWeight: 'var(--weight-semibold)',
+    letterSpacing: 'var(--tracking-caps)',
+    textTransform: 'uppercase',
+    color: 'var(--text-subtle)',
+  };
+}
 
 /** Répartition des séances qui se chevauchent en colonnes parallèles. */
 function calculerLanes(
@@ -136,17 +158,18 @@ function CelluleCreneau({
         gridColumn: colonne,
         gridRow: `${creneau.indexDebut + 2} / span ${duree}`,
         zIndex: 1,
+        borderRadius: 'var(--radius-xs)',
+        background: isOver ? 'var(--surface-selected)' : 'transparent',
+        boxShadow: isOver ? 'inset 0 0 0 2px var(--color-primary)' : 'none',
+        transition: 'background var(--duration-fast) var(--ease-standard)',
       }}
-      className={`rounded transition-colors ${
-        isOver ? 'bg-teal-100/80 ring-2 ring-inset ring-teal-400' : ''
-      }`}
     />
   );
 }
 
 /**
- * Grille hebdomadaire : colonnes = jours actifs, lignes = unités de 30 min.
- * Gère le glisser-déposer des séances vers les créneaux COURS.
+ * Grille hebdomadaire de la maquette : colonnes = jours actifs, lignes = unités
+ * de la grille horaire. Gère le glisser-déposer des séances vers les créneaux COURS.
  */
 export function GrillePlanning({
   grille,
@@ -191,133 +214,234 @@ export function GrillePlanning({
 
   const indices = Array.from({ length: grille.unitesParJour }, (_, i) => i);
 
+  /**
+   * Plages non enseignables : celles de la grille horaire (toutes colonnes) et les
+   * créneaux non COURS renvoyés par la vue. Dédupliquées pour éviter de superposer
+   * deux fois le même bandeau.
+   */
+  const blocages: { cle: string; colonne: number; debut: number; duree: number; libelle: string }[] =
+    [];
+  /* Clé de position seule : les deux sources donnent des durées différentes
+     pour la même plage (le créneau non-COURS de la vue porte 0 unité, la
+     grille porte la vraie durée). Dédupliquer sur la durée ne filtrerait
+     donc rien et empilerait deux bandeaux sur la même cellule. */
+  const positions = new Map<string, number>();
+  function ajouterBlocage(
+    jour: Jour,
+    colonne: number,
+    debut: number,
+    duree: number,
+    type: string,
+  ) {
+    const dureeNormalisee = Math.max(1, duree);
+    const libelle = LIBELLES_BLOCAGES[type] ?? type;
+    const cle = `${jour}-${debut}`;
+    const rang = positions.get(cle);
+    if (rang !== undefined) {
+      // Même plage vue deux fois : on garde la plus longue des deux durées.
+      const existant = blocages[rang];
+      if (existant !== undefined && dureeNormalisee > existant.duree) {
+        existant.duree = dureeNormalisee;
+        existant.libelle = libelle;
+      }
+      return;
+    }
+    positions.set(cle, blocages.length);
+    blocages.push({
+      cle,
+      colonne,
+      debut,
+      duree: dureeNormalisee,
+      libelle,
+    });
+  }
+  for (const creneau of planning.creneaux) {
+    if (creneau.type === 'COURS' || !jours.includes(creneau.jour)) continue;
+    ajouterBlocage(
+      creneau.jour,
+      colonneDuJour(creneau.jour),
+      creneau.indexDebut,
+      creneau.unitesDisponibles,
+      creneau.type,
+    );
+  }
+  for (const [index, jour] of jours.entries()) {
+    for (const plage of grille.plagesBloquees) {
+      ajouterBlocage(
+        jour,
+        index + 2,
+        plage.indexDebut,
+        plage.dureeUnites,
+        plage.type,
+      );
+    }
+  }
+
   return (
     <DndContext
       sensors={capteurs}
       collisionDetection={pointerWithin}
       onDragEnd={gererFinGlisser}
     >
-      <div className="overflow-x-auto rounded-xl border border-neutral-200 bg-white shadow-sm">
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: `4.5rem repeat(${jours.length}, minmax(9rem, 1fr))`,
-            gridTemplateRows: `2.5rem repeat(${grille.unitesParJour}, 2.75rem)`,
-          }}
-          className="min-w-max"
-        >
-          {/* En-tête : coin + jours */}
+      <div
+        style={{
+          minWidth: 0,
+          overflow: 'hidden',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: 'var(--radius-md)',
+          background: 'var(--surface-card)',
+          boxShadow: 'var(--shadow-sm)',
+        }}
+      >
+        <div style={{ overflowX: 'auto' }}>
           <div
-            style={{ gridColumn: 1, gridRow: 1 }}
-            className="border-b border-r border-neutral-200 bg-neutral-50"
-          />
-          {jours.map((jour, i) => (
+            style={{
+              display: 'grid',
+              minWidth: 'max-content',
+              gridTemplateColumns: `${LARGEUR_HEURES}px repeat(${jours.length}, minmax(${LARGEUR_MIN_JOUR}px, 1fr))`,
+              gridTemplateRows: `${HAUTEUR_ENTETE}px repeat(${grille.unitesParJour}, ${HAUTEUR_LIGNE}px)`,
+            }}
+          >
+            {/* Coin supérieur gauche */}
             <div
-              key={jour}
-              style={{ gridColumn: i + 2, gridRow: 1 }}
-              className="flex items-center justify-center border-b border-r border-neutral-200 bg-neutral-50 text-xs font-semibold uppercase tracking-wide text-neutral-600"
-            >
-              {LIBELLES_JOURS[jour]}
-            </div>
-          ))}
+              style={{
+                gridColumn: 1,
+                gridRow: 1,
+                position: 'sticky',
+                top: 0,
+                zIndex: 3,
+                background: 'var(--neutral-50)',
+                borderBottom: '1px solid var(--border-subtle)',
+                borderRight: '1px solid var(--border-subtle)',
+              }}
+            />
 
-          {/* Colonne des heures */}
-          {indices.map((index) => (
-            <div
-              key={`heure-${index}`}
-              style={{ gridColumn: 1, gridRow: index + 2 }}
-              className="flex items-start justify-end border-b border-r border-neutral-200 bg-neutral-50 px-2 pt-0.5 text-[10px] font-medium text-neutral-500"
-            >
-              {formatHeure(grille.heureDebut, index, grille.dureeUniteMinutes)}
-            </div>
-          ))}
-
-          {/* Fond quadrillé */}
-          {jours.map((jour, i) =>
-            indices.map((index) => (
+            {/* En-têtes de jours */}
+            {jours.map((jour, index) => (
               <div
-                key={`fond-${jour}-${index}`}
-                style={{ gridColumn: i + 2, gridRow: index + 2, zIndex: 0 }}
-                className="border-b border-r border-neutral-100"
-              />
-            )),
-          )}
-
-          {/* Plages bloquées de la grille (déjeuner, pauses) */}
-          {jours.map((jour, i) =>
-            grille.plagesBloquees.map((plage, p) => (
-              <div
-                key={`plage-${jour}-${p}`}
+                key={jour}
                 style={{
-                  ...HACHURES,
-                  gridColumn: i + 2,
-                  gridRow: `${plage.indexDebut + 2} / span ${plage.dureeUnites}`,
-                  zIndex: 1,
+                  gridColumn: index + 2,
+                  gridRow: 1,
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 3,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'var(--neutral-50)',
+                  borderBottom: '1px solid var(--border-subtle)',
+                  borderRight: '1px solid var(--border-subtle)',
+                  fontSize: 'var(--text-2xs)',
+                  fontWeight: 'var(--weight-semibold)',
+                  letterSpacing: 'var(--tracking-caps)',
+                  textTransform: 'uppercase',
+                  color: 'var(--text-muted)',
                 }}
-                className="flex items-center justify-center border-b border-r border-neutral-200 text-[10px] font-medium uppercase tracking-wide text-neutral-500"
               >
-                {LIBELLES_BLOCAGES[plage.type] ?? plage.type}
+                {LIBELLES_JOURS[jour]}
               </div>
-            )),
-          )}
+            ))}
 
-          {/* Créneaux non COURS renvoyés par la vue (hachurés) */}
-          {planning.creneaux
-            .filter(
-              (creneau) =>
-                creneau.type !== 'COURS' && jours.includes(creneau.jour),
-            )
-            .map((creneau) => (
+            {/* Colonne des heures */}
+            {indices.map((index) => (
               <div
-                key={`bloque-${creneau.id}`}
+                key={`heure-${index}`}
                 style={{
-                  ...HACHURES,
-                  gridColumn: colonneDuJour(creneau.jour),
-                  gridRow: `${creneau.indexDebut + 2} / span ${Math.max(1, creneau.unitesDisponibles)}`,
-                  zIndex: 1,
+                  gridColumn: 1,
+                  gridRow: index + 2,
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'flex-end',
+                  background: 'var(--neutral-50)',
+                  borderBottom: '1px solid var(--border-subtle)',
+                  borderRight: '1px solid var(--border-subtle)',
+                  padding: '3px 8px 0',
+                  fontSize: 'var(--text-2xs)',
+                  fontVariantNumeric: 'tabular-nums',
+                  color:
+                    index % 2 === 0 ? 'var(--text-muted)' : 'var(--text-subtle)',
                 }}
-                className="border-b border-r border-neutral-200"
-              />
+              >
+                {formatHeure(grille.heureDebut, index, grille.dureeUniteMinutes)}
+              </div>
             ))}
 
-          {/* Créneaux COURS : cibles de dépôt */}
-          {planning.creneaux
-            .filter(
-              (creneau) =>
-                creneau.type === 'COURS' && jours.includes(creneau.jour),
-            )
-            .map((creneau) => (
-              <CelluleCreneau
-                key={`creneau-${creneau.id}`}
-                creneau={creneau}
-                colonne={colonneDuJour(creneau.jour)}
-              />
-            ))}
-
-          {/* Séances */}
-          {planning.seances
-            .filter((seance) => jours.includes(seance.jour))
-            .map((seance) => {
-              const lane = lanes.get(seance.id) ?? { lane: 0, nbLanes: 1 };
-              const largeur = 100 / lane.nbLanes;
-              return (
-                <SeanceCard
-                  key={seance.id}
-                  seance={seance}
-                  vue={vue}
+            {/* Fond quadrillé */}
+            {jours.map((jour, colonne) =>
+              indices.map((index) => (
+                <div
+                  key={`fond-${jour}-${index}`}
                   style={{
-                    gridColumn: colonneDuJour(seance.jour),
-                    gridRow: `${seance.indexDebut + 2} / span ${seance.dureeUnites}`,
-                    width: `calc(${largeur}% - 4px)`,
-                    marginLeft: `${lane.lane * largeur}%`,
-                    justifySelf: 'start',
+                    gridColumn: colonne + 2,
+                    gridRow: index + 2,
+                    zIndex: 0,
+                    borderRight: '1px solid var(--neutral-100)',
+                    borderBottom: `1px solid ${
+                      index % 2 === 1 ? 'var(--neutral-100)' : 'transparent'
+                    }`,
                   }}
-                  onBasculerVerrou={onBasculerVerrou}
-                  onChangerSalle={onChangerSalle}
-                  onChangerEnseignant={onChangerEnseignant}
                 />
-              );
-            })}
+              )),
+            )}
+
+            {/* Plages non enseignables (déjeuner, pauses) */}
+            {blocages.map((blocage) => (
+              <div
+                key={`blocage-${blocage.cle}`}
+                style={styleBlocage(
+                  blocage.colonne,
+                  blocage.debut,
+                  blocage.duree,
+                )}
+              >
+                {blocage.libelle}
+              </div>
+            ))}
+
+            {/* Créneaux COURS : cibles de dépôt */}
+            {planning.creneaux
+              .filter(
+                (creneau) =>
+                  creneau.type === 'COURS' && jours.includes(creneau.jour),
+              )
+              .map((creneau) => (
+                <CelluleCreneau
+                  key={`creneau-${creneau.id}`}
+                  creneau={creneau}
+                  colonne={colonneDuJour(creneau.jour)}
+                />
+              ))}
+
+            {/* Séances */}
+            {planning.seances
+              .filter((seance) => jours.includes(seance.jour))
+              .map((seance) => {
+                const lane = lanes.get(seance.id) ?? { lane: 0, nbLanes: 1 };
+                const largeur = 100 / lane.nbLanes;
+                return (
+                  <SeanceCard
+                    key={seance.id}
+                    seance={seance}
+                    vue={vue}
+                    style={{
+                      gridColumn: colonneDuJour(seance.jour),
+                      gridRow: `${seance.indexDebut + 2} / span ${seance.dureeUnites}`,
+                      ...(lane.nbLanes > 1
+                        ? {
+                            width: `calc(${largeur}% - 6px)`,
+                            marginLeft: `calc(${lane.lane * largeur}% + 3px)`,
+                            justifySelf: 'start',
+                          }
+                        : {}),
+                    }}
+                    onBasculerVerrou={onBasculerVerrou}
+                    onChangerSalle={onChangerSalle}
+                    onChangerEnseignant={onChangerEnseignant}
+                  />
+                );
+              })}
+          </div>
         </div>
       </div>
     </DndContext>

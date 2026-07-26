@@ -1,6 +1,12 @@
 'use client';
 
-import { useEffect, useState, type FormEvent } from 'react';
+import {
+  useEffect,
+  useState,
+  type CSSProperties,
+  type FormEvent,
+  type ReactNode,
+} from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
 import { formatUnites } from '@/lib/format';
@@ -13,15 +19,27 @@ import type {
   Niveau,
   Salle,
 } from '@/lib/types';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Input,
+  Tabs,
+  type TabItem,
+} from '@/components/ds';
 import { Dialog } from '@/components/ui/dialog';
-import { EmptyState } from '@/components/ui/empty-state';
-import { Input } from '@/components/ui/input';
+/*
+ * Les formulaires des dialogues gardent les champs de `components/ui` :
+ * l’Input du design system consomme la prop `required` (elle ne sert qu’à
+ * l’astérisque) sans la transmettre au DOM, ce qui ferait perdre la
+ * validation HTML native de chaque dialogue de création / édition.
+ */
+import { Input as Champ } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
+import { Select as Selecteur } from '@/components/ui/select';
 import { ChargementPage } from '@/components/ui/spinner';
-import { Table, TBody, Td, Th, THead, Tr } from '@/components/ui/table';
 
 const TOUS_LES_JOURS: Jour[] = [
   'LUNDI',
@@ -43,6 +61,168 @@ const LIBELLES_JOURS: Record<Jour, string> = {
   DIMANCHE: 'Dimanche',
 };
 
+/* ------------------------------------------------------------------ */
+/* Styles de la maquette (TH / TD, en-têtes de carte)                 */
+/* ------------------------------------------------------------------ */
+
+const TABLEAU: CSSProperties = {
+  width: '100%',
+  borderCollapse: 'collapse',
+  fontSize: 'var(--text-sm)',
+};
+
+const TH: CSSProperties = {
+  padding: '10px 14px',
+  background: 'var(--neutral-50)',
+  borderBottom: '1px solid var(--border-subtle)',
+  fontSize: 'var(--text-2xs)',
+  fontWeight: 'var(--weight-semibold)',
+  letterSpacing: 'var(--tracking-caps)',
+  textTransform: 'uppercase',
+  color: 'var(--text-muted)',
+  whiteSpace: 'nowrap',
+  textAlign: 'left',
+};
+
+const TH_DROITE: CSSProperties = { ...TH, textAlign: 'right' };
+
+const TD: CSSProperties = {
+  padding: '0 14px',
+  height: 'var(--row-height)',
+  borderBottom: '1px solid var(--neutral-100)',
+  color: 'var(--text-body)',
+  whiteSpace: 'nowrap',
+  textAlign: 'left',
+};
+
+const TD_DROITE: CSSProperties = {
+  ...TD,
+  textAlign: 'right',
+  fontVariantNumeric: 'tabular-nums',
+};
+
+const TD_MONO: CSSProperties = {
+  ...TD,
+  fontFamily: 'var(--font-mono)',
+  fontSize: 'var(--text-xs)',
+  fontVariantNumeric: 'tabular-nums',
+  color: 'var(--text-muted)',
+};
+
+const TD_FORT: CSSProperties = {
+  ...TD,
+  fontWeight: 'var(--weight-medium)',
+  color: 'var(--text-strong)',
+};
+
+/** Ligne de sous-groupe : indentée et atténuée (maquette). */
+const TD_SOUS: CSSProperties = {
+  ...TD,
+  paddingLeft: '36px',
+  color: 'var(--text-muted)',
+};
+
+const TITRE_CARTE: CSSProperties = {
+  margin: 0,
+  fontSize: 'var(--type-card-title-size)',
+  fontWeight: 'var(--type-card-title-weight)',
+  color: 'var(--text-strong)',
+};
+
+/** Micro-capitales d’intitulé de bloc dans un corps de carte. */
+const SURTITRE: CSSProperties = {
+  margin: '0 0 10px',
+  fontSize: 'var(--text-2xs)',
+  fontWeight: 'var(--weight-semibold)',
+  letterSpacing: 'var(--tracking-caps)',
+  textTransform: 'uppercase',
+  color: 'var(--text-muted)',
+};
+
+const CORPS_CARTE: CSSProperties = { padding: '20px 24px 24px' };
+
+/* ------------------------------------------------------------------ */
+/* Petits blocs partagés                                             */
+/* ------------------------------------------------------------------ */
+
+function EnteteCarte({
+  titre,
+  sousTitre,
+  actions,
+}: {
+  titre: string;
+  sousTitre?: string;
+  actions?: ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: sousTitre === undefined ? 'center' : 'flex-start',
+        justifyContent: 'space-between',
+        gap: '16px',
+        padding: '18px 24px',
+        borderBottom: '1px solid var(--border-subtle)',
+      }}
+    >
+      <div>
+        <h3 style={TITRE_CARTE}>{titre}</h3>
+        {sousTitre !== undefined && (
+          <p
+            style={{
+              margin: '4px 0 0',
+              fontSize: 'var(--text-sm)',
+              color: 'var(--text-muted)',
+              whiteSpace: 'normal',
+            }}
+          >
+            {sousTitre}
+          </p>
+        )}
+      </div>
+      {actions !== undefined && (
+        <div style={{ display: 'flex', gap: '8px', flex: 'none' }}>{actions}</div>
+      )}
+    </div>
+  );
+}
+
+function MessageErreur({ message }: { message: string }) {
+  return <Alert tone="danger">{message}</Alert>;
+}
+
+/** Bandeau d’erreur posé dans un corps de carte non capitonné. */
+function BandeauErreur({ message }: { message: string }) {
+  return (
+    <div style={{ padding: '16px 24px 0' }}>
+      <MessageErreur message={message} />
+    </div>
+  );
+}
+
+/**
+ * Liste de pastilles neutres. La liste vide rend un tiret nu, pas une
+ * pastille : « — » n'est pas une valeur et ne doit pas se lire comme telle.
+ */
+function Pastilles({ elements }: { elements: string[] }) {
+  if (elements.length === 0) {
+    return <span style={{ color: 'var(--text-subtle)' }}>—</span>;
+  }
+  return (
+    <span style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+      {elements.map((element, index) => (
+        <Badge key={`${element}-${index}`} tone="neutral" size="sm">
+          {element}
+        </Badge>
+      ))}
+    </span>
+  );
+}
+
+function ActionsLigne({ children }: { children: ReactNode }) {
+  return <span style={{ display: 'inline-flex', gap: '6px' }}>{children}</span>;
+}
+
 function csvVersListe(texte: string): string[] {
   return texte
     .split(',')
@@ -50,29 +230,9 @@ function csvVersListe(texte: string): string[] {
     .filter((element) => element.length > 0);
 }
 
-function MessageErreur({ message }: { message: string }) {
-  return (
-    <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-      {message}
-    </p>
-  );
-}
-
-function Pastilles({ elements }: { elements: string[] }) {
-  if (elements.length === 0) return <span className="text-neutral-400">—</span>;
-  return (
-    <span className="flex flex-wrap gap-1">
-      {elements.map((element) => (
-        <span
-          key={element}
-          className="inline-flex items-center rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-600"
-        >
-          {element}
-        </span>
-      ))}
-    </span>
-  );
-}
+/* ------------------------------------------------------------------ */
+/* Page                                                              */
+/* ------------------------------------------------------------------ */
 
 type Onglet =
   | 'grille'
@@ -82,53 +242,78 @@ type Onglet =
   | 'salles'
   | 'barrettes';
 
-const ONGLETS: { id: Onglet; libelle: string }[] = [
-  { id: 'grille', libelle: 'Grille horaire' },
-  { id: 'niveaux', libelle: 'Niveaux' },
-  { id: 'groupes', libelle: 'Groupes' },
-  { id: 'matieres', libelle: 'Matières' },
-  { id: 'salles', libelle: 'Salles' },
-  { id: 'barrettes', libelle: 'Barrettes' },
-];
-
 export default function PageReferentiel() {
   const [onglet, setOnglet] = useState<Onglet>('grille');
 
+  /*
+   * Compteurs des onglets (maquette). Les clés de requête sont celles des
+   * onglets : le cache TanStack Query est partagé, aucune requête en double.
+   */
+  const niveaux = useQuery({
+    queryKey: ['ecole', 'niveaux'],
+    queryFn: () => apiFetch<Niveau[]>('/ecole/niveaux'),
+  });
+  const groupes = useQuery({
+    queryKey: ['ecole', 'groupes'],
+    queryFn: () => apiFetch<Groupe[]>('/ecole/groupes'),
+  });
+  const matieres = useQuery({
+    queryKey: ['ecole', 'matieres'],
+    queryFn: () => apiFetch<Matiere[]>('/ecole/matieres'),
+  });
+  const salles = useQuery({
+    queryKey: ['ecole', 'salles'],
+    queryFn: () => apiFetch<Salle[]>('/ecole/salles'),
+  });
+  const barrettes = useQuery({
+    queryKey: ['ecole', 'barrettes'],
+    queryFn: () => apiFetch<Barrette[]>('/ecole/barrettes'),
+  });
+
+  const nombreGroupes = groupes.data?.reduce(
+    (total, groupe) => total + 1 + (groupe.sousGroupes ?? []).length,
+    0,
+  );
+
+  const onglets: TabItem[] = [
+    { id: 'grille', label: 'Grille horaire' },
+    { id: 'niveaux', label: 'Niveaux', count: niveaux.data?.length ?? null },
+    { id: 'groupes', label: 'Groupes', count: nombreGroupes ?? null },
+    { id: 'matieres', label: 'Matières', count: matieres.data?.length ?? null },
+    { id: 'salles', label: 'Salles', count: salles.data?.length ?? null },
+    {
+      id: 'barrettes',
+      label: 'Barrettes',
+      count: barrettes.data?.length ?? null,
+    },
+  ];
+
   return (
-    <div>
-      <h1 className="text-xl font-semibold text-neutral-900">Référentiel</h1>
-      <p className="mt-1 text-sm text-neutral-500">
-        Grille horaire, niveaux, groupes, matières, salles et barrettes de votre
-        établissement. Toutes les durées sont exprimées en unités de 30 minutes.
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <p
+        style={{
+          margin: 0,
+          fontSize: 'var(--text-base)',
+          color: 'var(--text-muted)',
+          maxWidth: '78ch',
+        }}
+      >
+        Grille horaire, niveaux, groupes, matières, salles et barrettes. Toutes
+        les durées sont exprimées en unités de 30 minutes.
       </p>
 
-      <div className="mt-6 border-b border-neutral-200">
-        <nav className="-mb-px flex flex-wrap gap-1">
-          {ONGLETS.map((element) => (
-            <button
-              key={element.id}
-              type="button"
-              onClick={() => setOnglet(element.id)}
-              className={`border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
-                onglet === element.id
-                  ? 'border-teal-600 text-teal-700'
-                  : 'border-transparent text-neutral-500 hover:border-neutral-300 hover:text-neutral-700'
-              }`}
-            >
-              {element.libelle}
-            </button>
-          ))}
-        </nav>
-      </div>
+      <Tabs
+        tabs={onglets}
+        value={onglet}
+        onChange={(id) => setOnglet(id as Onglet)}
+      />
 
-      <div className="mt-6">
-        {onglet === 'grille' && <OngletGrille />}
-        {onglet === 'niveaux' && <OngletNiveaux />}
-        {onglet === 'groupes' && <OngletGroupes />}
-        {onglet === 'matieres' && <OngletMatieres />}
-        {onglet === 'salles' && <OngletSalles />}
-        {onglet === 'barrettes' && <OngletBarrettes />}
-      </div>
+      {onglet === 'grille' && <OngletGrille />}
+      {onglet === 'niveaux' && <OngletNiveaux />}
+      {onglet === 'groupes' && <OngletGroupes />}
+      {onglet === 'matieres' && <OngletMatieres />}
+      {onglet === 'salles' && <OngletSalles />}
+      {onglet === 'barrettes' && <OngletBarrettes />}
     </div>
   );
 }
@@ -155,6 +340,9 @@ function OngletGrille() {
   const [formulaire, setFormulaire] = useState<Grille | null>(null);
   const [dialogForcer, setDialogForcer] = useState(false);
   const [messageSucces, setMessageSucces] = useState<string | null>(null);
+  const [messageValidation, setMessageValidation] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     if (data !== undefined) {
@@ -187,7 +375,15 @@ function OngletGrille() {
   if (isLoading) return <ChargementPage />;
   if (error !== null) return <MessageErreur message={error.message} />;
   if (formulaire === null) {
-    return <EmptyState message="Aucune grille horaire disponible." />;
+    return (
+      <Card padded={false}>
+        <EmptyState
+          variant="gated"
+          title="Aucune grille horaire"
+          description="Aucune grille horaire n’est disponible pour cet établissement."
+        />
+      </Card>
+    );
   }
 
   function basculerJour(jour: Jour) {
@@ -217,205 +413,297 @@ function OngletGrille() {
 
   function soumettre(evenement: FormEvent<HTMLFormElement>) {
     evenement.preventDefault();
+    if (formulaire === null) return;
     setMessageSucces(null);
+    /*
+     * Contrôle équivalent aux attributs `required` / `min` des champs :
+     * l’Input du design system ne transmet pas `required` au DOM.
+     */
+    const invalide =
+      formulaire.heureDebut.trim().length === 0 ||
+      !Number.isFinite(formulaire.dureeUniteMinutes) ||
+      formulaire.dureeUniteMinutes < 5 ||
+      formulaire.unitesParJour < 1 ||
+      formulaire.amplitudeMaxUnites < 1 ||
+      formulaire.plagesBloquees.some(
+        (plage) =>
+          plage.type.trim().length === 0 ||
+          plage.indexDebut < 0 ||
+          plage.dureeUnites < 1,
+      );
+    if (invalide) {
+      setMessageValidation(
+        'Vérifiez la structure de la semaine et les plages bloquées : chaque champ doit être renseigné avec une valeur valide.',
+      );
+      return;
+    }
+    setMessageValidation(null);
     enregistrement.mutate(false);
   }
 
   return (
-    <div className="space-y-6">
-      <form onSubmit={soumettre} className="space-y-6">
-        <Card titre="Structure de la semaine">
-          <div className="space-y-5">
+    <>
+      <form
+        onSubmit={soumettre}
+        style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
+      >
+        <Card padded={false}>
+          <EnteteCarte titre="Structure de la semaine" />
+          <div
+            style={{
+              ...CORPS_CARTE,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px',
+            }}
+          >
             <div>
-              <Label>Jours actifs</Label>
-              <div className="mt-2 flex flex-wrap gap-4">
-                {TOUS_LES_JOURS.map((jour) => (
-                  <label
-                    key={jour}
-                    className="flex items-center gap-2 text-sm text-neutral-700"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={formulaire.joursActifs.includes(jour)}
-                      onChange={() => basculerJour(jour)}
-                      className="h-4 w-4 rounded border-neutral-300 text-teal-600 focus:ring-teal-500"
-                    />
-                    {LIBELLES_JOURS[jour]}
-                  </label>
-                ))}
+              <p style={SURTITRE}>Jours actifs</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {TOUS_LES_JOURS.map((jour) => {
+                  const actif = formulaire.joursActifs.includes(jour);
+                  return (
+                    <button
+                      key={jour}
+                      type="button"
+                      aria-pressed={actif}
+                      onClick={() => basculerJour(jour)}
+                      style={{
+                        borderRadius: 'var(--radius-pill)',
+                        padding: '6px 14px',
+                        fontSize: 'var(--text-sm)',
+                        fontWeight: 'var(--weight-medium)',
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                        transition: 'all var(--duration-fast) var(--ease-standard)',
+                        ...(actif
+                          ? {
+                              border: '1px solid var(--color-primary)',
+                              background: 'var(--surface-selected)',
+                              color: 'var(--teal-700)',
+                            }
+                          : {
+                              border: '1px solid var(--border-subtle)',
+                              background: 'var(--surface-card)',
+                              color: 'var(--text-muted)',
+                            }),
+                      }}
+                    >
+                      {LIBELLES_JOURS[jour]}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div>
-                <Label htmlFor="heureDebut">Heure de début</Label>
-                <Input
-                  id="heureDebut"
-                  type="time"
-                  value={formulaire.heureDebut}
-                  onChange={(e) =>
-                    setFormulaire({ ...formulaire, heureDebut: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="dureeUniteMinutes">Durée d’une unité (min)</Label>
-                <Input
-                  id="dureeUniteMinutes"
-                  type="number"
-                  min="5"
-                  value={formulaire.dureeUniteMinutes}
-                  onChange={(e) =>
-                    setFormulaire({
-                      ...formulaire,
-                      dureeUniteMinutes: Number(e.target.value),
-                    })
-                  }
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="unitesParJour">Unités par jour</Label>
-                <Input
-                  id="unitesParJour"
-                  type="number"
-                  min="1"
-                  value={formulaire.unitesParJour}
-                  onChange={(e) =>
-                    setFormulaire({
-                      ...formulaire,
-                      unitesParJour: Number(e.target.value),
-                    })
-                  }
-                  required
-                />
-                <p className="mt-1 text-xs text-neutral-500">
-                  Soit {formatUnites(formulaire.unitesParJour)} par jour.
-                </p>
-              </div>
-              <div>
-                <Label htmlFor="amplitudeMaxUnites">Amplitude max (unités)</Label>
-                <Input
-                  id="amplitudeMaxUnites"
-                  type="number"
-                  min="1"
-                  value={formulaire.amplitudeMaxUnites}
-                  onChange={(e) =>
-                    setFormulaire({
-                      ...formulaire,
-                      amplitudeMaxUnites: Number(e.target.value),
-                    })
-                  }
-                  required
-                />
-                <p className="mt-1 text-xs text-neutral-500">
-                  Soit {formatUnites(formulaire.amplitudeMaxUnites)} maximum.
-                </p>
-              </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4,1fr)',
+                gap: '16px',
+              }}
+            >
+              <Input
+                id="grille-heure-debut"
+                label="Heure de début"
+                type="time"
+                value={formulaire.heureDebut}
+                onChange={(e) =>
+                  setFormulaire({ ...formulaire, heureDebut: e.target.value })
+                }
+              />
+              <Input
+                id="grille-duree-unite"
+                label="Durée d’une unité"
+                type="number"
+                min={5}
+                hint="minutes"
+                value={formulaire.dureeUniteMinutes}
+                onChange={(e) =>
+                  setFormulaire({
+                    ...formulaire,
+                    dureeUniteMinutes: Number(e.target.value),
+                  })
+                }
+              />
+              <Input
+                id="grille-unites-jour"
+                label="Unités par jour"
+                type="number"
+                min={1}
+                hint={`soit ${formatUnites(formulaire.unitesParJour)} par jour`}
+                value={formulaire.unitesParJour}
+                onChange={(e) =>
+                  setFormulaire({
+                    ...formulaire,
+                    unitesParJour: Number(e.target.value),
+                  })
+                }
+              />
+              <Input
+                id="grille-amplitude-max"
+                label="Amplitude max"
+                type="number"
+                min={1}
+                hint={`soit ${formatUnites(
+                  formulaire.amplitudeMaxUnites,
+                )} maximum`}
+                value={formulaire.amplitudeMaxUnites}
+                onChange={(e) =>
+                  setFormulaire({
+                    ...formulaire,
+                    amplitudeMaxUnites: Number(e.target.value),
+                  })
+                }
+              />
             </div>
           </div>
         </Card>
 
-        <Card
-          titre="Plages bloquées"
-          actions={
-            <Button
-              variante="secondary"
-              taille="sm"
-              onClick={() =>
-                setFormulaire({
-                  ...formulaire,
-                  plagesBloquees: [
-                    ...formulaire.plagesBloquees,
-                    { type: 'DEJEUNER', indexDebut: 8, dureeUnites: 2 },
-                  ],
-                })
-              }
-            >
-              Ajouter une plage
-            </Button>
-          }
-        >
-          {formulaire.plagesBloquees.length === 0 ? (
-            <EmptyState message="Aucune plage bloquée (déjeuner, pause…)." />
-          ) : (
-            <div className="space-y-3">
-              {formulaire.plagesBloquees.map((plage, index) => (
-                <div
-                  key={index}
-                  className="flex flex-wrap items-end gap-3 rounded-lg border border-neutral-100 bg-neutral-50 p-3"
-                >
-                  <div className="w-40">
-                    <Label htmlFor={`plageType${index}`}>Type</Label>
-                    <Input
-                      id={`plageType${index}`}
-                      value={plage.type}
-                      onChange={(e) =>
-                        modifierPlage(index, 'type', e.target.value)
-                      }
-                      placeholder="DEJEUNER"
-                      required
-                    />
-                  </div>
-                  <div className="w-32">
-                    <Label htmlFor={`plageDebut${index}`}>Index de début</Label>
-                    <Input
-                      id={`plageDebut${index}`}
-                      type="number"
-                      min="0"
-                      value={plage.indexDebut}
-                      onChange={(e) =>
-                        modifierPlage(index, 'indexDebut', e.target.value)
-                      }
-                      required
-                    />
-                  </div>
-                  <div className="w-32">
-                    <Label htmlFor={`plageDuree${index}`}>Durée (unités)</Label>
-                    <Input
-                      id={`plageDuree${index}`}
-                      type="number"
-                      min="1"
-                      value={plage.dureeUnites}
-                      onChange={(e) =>
-                        modifierPlage(index, 'dureeUnites', e.target.value)
-                      }
-                      required
-                    />
-                  </div>
-                  <p className="pb-2 text-xs text-neutral-500">
-                    {formatUnites(plage.dureeUnites)}
-                  </p>
-                  <Button
-                    variante="ghost"
-                    taille="sm"
-                    className="ml-auto text-red-600 hover:bg-red-50 hover:text-red-700"
-                    onClick={() =>
-                      setFormulaire({
-                        ...formulaire,
-                        plagesBloquees: formulaire.plagesBloquees.filter(
-                          (_plage, i) => i !== index,
-                        ),
-                      })
-                    }
+        <Card padded={false}>
+          <EnteteCarte
+            titre="Plages bloquées"
+            actions={
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() =>
+                  setFormulaire({
+                    ...formulaire,
+                    plagesBloquees: [
+                      ...formulaire.plagesBloquees,
+                      { type: 'DEJEUNER', indexDebut: 8, dureeUnites: 2 },
+                    ],
+                  })
+                }
+              >
+                Ajouter une plage
+              </Button>
+            }
+          />
+          <div style={CORPS_CARTE}>
+            {formulaire.plagesBloquees.length === 0 ? (
+              <EmptyState
+                variant="gated"
+                title="Aucune plage bloquée"
+                description="Ajoutez les plages non enseignées (déjeuner, pause…) : elles seront exclues de tous les créneaux."
+                style={{ padding: '12px 0 4px' }}
+              />
+            ) : (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                }}
+              >
+                {formulaire.plagesBloquees.map((plage, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      alignItems: 'flex-end',
+                      gap: '16px',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--surface-sunken)',
+                      padding: '16px',
+                    }}
                   >
-                    Retirer
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
+                    <div style={{ width: '180px' }}>
+                      <Input
+                        id={`plage-type-${index}`}
+                        label="Type"
+                        value={plage.type}
+                        placeholder="DEJEUNER"
+                        onChange={(e) =>
+                          modifierPlage(index, 'type', e.target.value)
+                        }
+                      />
+                    </div>
+                    <div style={{ width: '140px' }}>
+                      <Input
+                        id={`plage-debut-${index}`}
+                        label="Index de début"
+                        type="number"
+                        min={0}
+                        value={plage.indexDebut}
+                        onChange={(e) =>
+                          modifierPlage(index, 'indexDebut', e.target.value)
+                        }
+                      />
+                    </div>
+                    <div style={{ width: '140px' }}>
+                      <Input
+                        id={`plage-duree-${index}`}
+                        label="Durée"
+                        type="number"
+                        min={1}
+                        hint={formatUnites(plage.dureeUnites)}
+                        value={plage.dureeUnites}
+                        onChange={(e) =>
+                          modifierPlage(index, 'dureeUnites', e.target.value)
+                        }
+                      />
+                    </div>
+                    <div style={{ marginLeft: 'auto' }}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          setFormulaire({
+                            ...formulaire,
+                            plagesBloquees: formulaire.plagesBloquees.filter(
+                              (_plage, i) => i !== index,
+                            ),
+                          })
+                        }
+                      >
+                        Retirer
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </Card>
 
-        {messageSucces !== null && (
-          <p className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-            {messageSucces}
-          </p>
+        {messageValidation !== null && (
+          <Alert
+            tone="warning"
+            onClose={() => setMessageValidation(null)}
+          >
+            {messageValidation}
+          </Alert>
         )}
 
-        <div className="flex justify-end">
-          <Button type="submit" disabled={enregistrement.isPending}>
+        {messageSucces !== null && (
+          <Alert tone="success" onClose={() => setMessageSucces(null)}>
+            {messageSucces}
+          </Alert>
+        )}
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+          <Button
+            variant="secondary"
+            size="md"
+            disabled={data === undefined || enregistrement.isPending}
+            onClick={() => {
+              if (data !== undefined) setFormulaire(copierGrille(data));
+              setMessageSucces(null);
+              setMessageValidation(null);
+            }}
+          >
+            Annuler
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            size="md"
+            loading={enregistrement.isPending}
+          >
             {enregistrement.isPending
               ? 'Enregistrement…'
               : 'Enregistrer la grille'}
@@ -432,21 +720,18 @@ function OngletGrille() {
           {enregistrement.error !== null && (
             <MessageErreur message={enregistrement.error.message} />
           )}
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            <p className="font-semibold">Action destructive</p>
-            <p className="mt-1">
-              Forcer l’enregistrement supprimera définitivement toutes les
-              versions de planning et toutes les séances existantes, puis
-              régénérera les créneaux à partir de la nouvelle grille.
-            </p>
-          </div>
+          <Alert tone="warning" title="Action destructive">
+            Forcer l’enregistrement supprimera définitivement toutes les
+            versions de planning et toutes les séances existantes, puis
+            régénérera les créneaux à partir de la nouvelle grille.
+          </Alert>
           <div className="flex justify-end gap-3">
-            <Button variante="secondary" onClick={() => setDialogForcer(false)}>
+            <Button variant="secondary" onClick={() => setDialogForcer(false)}>
               Annuler
             </Button>
             <Button
-              variante="danger"
-              disabled={enregistrement.isPending}
+              variant="danger"
+              loading={enregistrement.isPending}
               onClick={() => enregistrement.mutate(true)}
             >
               {enregistrement.isPending
@@ -456,7 +741,7 @@ function OngletGrille() {
           </div>
         </div>
       </Dialog>
-    </div>
+    </>
   );
 }
 
@@ -540,50 +825,63 @@ function OngletNiveaux() {
   const liste = [...(niveaux ?? [])].sort((a, b) => a.ordre - b.ordre);
 
   return (
-    <Card
-      titre="Niveaux"
-      actions={<Button taille="sm" onClick={ouvrirCreation}>Nouveau niveau</Button>}
-    >
+    <Card padded={false} style={{ overflow: 'hidden' }}>
+      <EnteteCarte
+        titre="Niveaux"
+        actions={
+          <Button variant="primary" size="sm" onClick={ouvrirCreation}>
+            Nouveau niveau
+          </Button>
+        }
+      />
+
       {suppression.error !== null && (
-        <div className="mb-4">
-          <MessageErreur message={suppression.error.message} />
-        </div>
+        <BandeauErreur message={suppression.error.message} />
       )}
+
       {liste.length === 0 ? (
-        <EmptyState message="Aucun niveau. Créez d’abord vos niveaux (ex. 1AC, 2AC…)." />
+        <EmptyState
+          title="Aucun niveau"
+          description="Créez d’abord vos niveaux (ex. 1AC, 2AC…) : groupes, maquettes et matières s’y rattachent."
+          action={
+            <Button variant="primary" size="sm" onClick={ouvrirCreation}>
+              Nouveau niveau
+            </Button>
+          }
+        />
       ) : (
-        <Table>
-          <THead>
-            <Tr>
-              <Th>Ordre</Th>
-              <Th>Libellé</Th>
-              <Th>Cycle</Th>
-              <Th>Charge max / jour</Th>
-              <Th className="text-right">Actions</Th>
-            </Tr>
-          </THead>
-          <TBody>
+        <table style={TABLEAU}>
+          <thead>
+            <tr>
+              <th style={TH_DROITE}>Ordre</th>
+              <th style={TH}>Libellé</th>
+              <th style={TH}>Cycle</th>
+              <th style={TH}>Charge max / jour</th>
+              <th style={TH_DROITE}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
             {liste.map((niveau) => (
-              <Tr key={niveau.id}>
-                <Td>{niveau.ordre}</Td>
-                <Td className="font-medium text-neutral-900">{niveau.libelle}</Td>
-                <Td>{niveau.cycle}</Td>
-                <Td>
+              <tr key={niveau.id}>
+                <td style={TD_DROITE}>{niveau.ordre}</td>
+                <td style={TD_FORT}>{niveau.libelle}</td>
+                <td style={TD}>{niveau.cycle}</td>
+                <td style={TD}>
                   {niveau.chargeMaxUnitesJour} unités (
                   {formatUnites(niveau.chargeMaxUnitesJour)})
-                </Td>
-                <Td className="text-right">
-                  <div className="flex justify-end gap-2">
+                </td>
+                <td style={TD_DROITE}>
+                  <ActionsLigne>
                     <Button
-                      variante="secondary"
-                      taille="sm"
+                      variant="secondary"
+                      size="sm"
                       onClick={() => ouvrirEdition(niveau)}
                     >
                       Modifier
                     </Button>
                     <Button
-                      variante="danger"
-                      taille="sm"
+                      variant="ghost"
+                      size="sm"
                       disabled={suppression.isPending}
                       onClick={() => {
                         if (
@@ -597,12 +895,12 @@ function OngletNiveaux() {
                     >
                       Supprimer
                     </Button>
-                  </div>
-                </Td>
-              </Tr>
+                  </ActionsLigne>
+                </td>
+              </tr>
             ))}
-          </TBody>
-        </Table>
+          </tbody>
+        </table>
       )}
 
       <Dialog
@@ -620,7 +918,7 @@ function OngletNiveaux() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="libelleNiveau">Libellé</Label>
-              <Input
+              <Champ
                 id="libelleNiveau"
                 value={formulaire.libelle}
                 onChange={(e) =>
@@ -632,7 +930,7 @@ function OngletNiveaux() {
             </div>
             <div>
               <Label htmlFor="cycleNiveau">Cycle</Label>
-              <Input
+              <Champ
                 id="cycleNiveau"
                 value={formulaire.cycle}
                 onChange={(e) =>
@@ -646,7 +944,7 @@ function OngletNiveaux() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="ordreNiveau">Ordre</Label>
-              <Input
+              <Champ
                 id="ordreNiveau"
                 type="number"
                 min="1"
@@ -659,7 +957,7 @@ function OngletNiveaux() {
             </div>
             <div>
               <Label htmlFor="chargeNiveau">Charge max / jour (unités)</Label>
-              <Input
+              <Champ
                 id="chargeNiveau"
                 type="number"
                 min="1"
@@ -672,7 +970,7 @@ function OngletNiveaux() {
                 }
                 required
               />
-              <p className="mt-1 text-xs text-neutral-500">
+              <p className="mt-1 text-xs text-ink-muted">
                 Soit {formatUnites(Number(formulaire.chargeMaxUnitesJour) || 0)}{' '}
                 par jour.
               </p>
@@ -684,10 +982,10 @@ function OngletNiveaux() {
           )}
 
           <div className="flex justify-end gap-3 pt-2">
-            <Button variante="secondary" onClick={() => setDialogOuvert(false)}>
+            <Button variant="secondary" onClick={() => setDialogOuvert(false)}>
               Annuler
             </Button>
-            <Button type="submit" disabled={sauvegarde.isPending}>
+            <Button type="submit" loading={sauvegarde.isPending}>
               {sauvegarde.isPending ? 'Enregistrement…' : 'Enregistrer'}
             </Button>
           </div>
@@ -793,26 +1091,30 @@ function OngletGroupes() {
 
   function ligneGroupe(groupe: Groupe, sousGroupe: boolean) {
     return (
-      <Tr key={groupe.id}>
-        <Td className={sousGroupe ? 'pl-10' : 'font-medium text-neutral-900'}>
+      <tr key={groupe.id}>
+        <td style={sousGroupe ? TD_SOUS : TD_FORT}>
           {sousGroupe ? `↳ ${groupe.libelle}` : groupe.libelle}
-        </Td>
-        <Td>{groupe.niveauLibelle}</Td>
-        <Td>{groupe.effectif}</Td>
-        <Td>{groupe.type}</Td>
-        <Td className="text-right">
-          <div className="flex justify-end gap-2">
+        </td>
+        <td style={TD}>{groupe.niveauLibelle}</td>
+        <td style={TD_DROITE}>{groupe.effectif}</td>
+        <td style={TD}>
+          <Badge tone={sousGroupe ? 'neutral' : 'info'} size="sm">
+            {groupe.type}
+          </Badge>
+        </td>
+        <td style={TD_DROITE}>
+          <ActionsLigne>
             <Button
-              variante="secondary"
-              taille="sm"
+              variant="secondary"
+              size="sm"
               onClick={() => ouvrirEdition(groupe)}
             >
               Modifier
             </Button>
             {!sousGroupe && (
               <Button
-                variante="secondary"
-                taille="sm"
+                variant="secondary"
+                size="sm"
                 onClick={() => {
                   dedoublement.reset();
                   setNombreSousGroupes('2');
@@ -823,14 +1125,12 @@ function OngletGroupes() {
               </Button>
             )}
             <Button
-              variante="danger"
-              taille="sm"
+              variant="ghost"
+              size="sm"
               disabled={suppression.isPending}
               onClick={() => {
                 if (
-                  window.confirm(
-                    `Supprimer le groupe « ${groupe.libelle} » ?`,
-                  )
+                  window.confirm(`Supprimer le groupe « ${groupe.libelle} » ?`)
                 ) {
                   suppression.mutate(groupe.id);
                 }
@@ -838,44 +1138,57 @@ function OngletGroupes() {
             >
               Supprimer
             </Button>
-          </div>
-        </Td>
-      </Tr>
+          </ActionsLigne>
+        </td>
+      </tr>
     );
   }
 
   return (
-    <Card
-      titre="Groupes (classes et sous-groupes)"
-      actions={<Button taille="sm" onClick={ouvrirCreation}>Nouveau groupe</Button>}
-    >
+    <Card padded={false} style={{ overflow: 'hidden' }}>
+      <EnteteCarte
+        titre="Groupes (classes et sous-groupes)"
+        actions={
+          <Button variant="primary" size="sm" onClick={ouvrirCreation}>
+            Nouveau groupe
+          </Button>
+        }
+      />
+
       {suppression.error !== null && (
-        <div className="mb-4">
-          <MessageErreur message={suppression.error.message} />
-        </div>
+        <BandeauErreur message={suppression.error.message} />
       )}
+
       {liste.length === 0 ? (
-        <EmptyState message="Aucun groupe. Créez vos classes (ex. 1AC-A)." />
+        <EmptyState
+          title="Aucun groupe"
+          description="Créez vos classes (ex. 1AC-A), puis dédoublez-les en sous-groupes si nécessaire."
+          action={
+            <Button variant="primary" size="sm" onClick={ouvrirCreation}>
+              Nouveau groupe
+            </Button>
+          }
+        />
       ) : (
-        <Table>
-          <THead>
-            <Tr>
-              <Th>Libellé</Th>
-              <Th>Niveau</Th>
-              <Th>Effectif</Th>
-              <Th>Type</Th>
-              <Th className="text-right">Actions</Th>
-            </Tr>
-          </THead>
-          <TBody>
+        <table style={TABLEAU}>
+          <thead>
+            <tr>
+              <th style={TH}>Libellé</th>
+              <th style={TH}>Niveau</th>
+              <th style={TH_DROITE}>Effectif</th>
+              <th style={TH}>Type</th>
+              <th style={TH_DROITE}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
             {liste.map((groupe) => [
               ligneGroupe(groupe, false),
               ...(groupe.sousGroupes ?? []).map((sousGroupe) =>
                 ligneGroupe(sousGroupe, true),
               ),
             ])}
-          </TBody>
-        </Table>
+          </tbody>
+        </table>
       )}
 
       <Dialog
@@ -893,7 +1206,7 @@ function OngletGroupes() {
           {enEdition === null && (
             <div>
               <Label htmlFor="niveauGroupe">Niveau</Label>
-              <Select
+              <Selecteur
                 id="niveauGroupe"
                 value={formulaire.niveauId}
                 onChange={(e) =>
@@ -907,13 +1220,13 @@ function OngletGroupes() {
                     {niveau.libelle}
                   </option>
                 ))}
-              </Select>
+              </Selecteur>
             </div>
           )}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="libelleGroupe">Libellé</Label>
-              <Input
+              <Champ
                 id="libelleGroupe"
                 value={formulaire.libelle}
                 onChange={(e) =>
@@ -925,7 +1238,7 @@ function OngletGroupes() {
             </div>
             <div>
               <Label htmlFor="effectifGroupe">Effectif</Label>
-              <Input
+              <Champ
                 id="effectifGroupe"
                 type="number"
                 min="1"
@@ -943,10 +1256,10 @@ function OngletGroupes() {
           )}
 
           <div className="flex justify-end gap-3 pt-2">
-            <Button variante="secondary" onClick={() => setDialogOuvert(false)}>
+            <Button variant="secondary" onClick={() => setDialogOuvert(false)}>
               Annuler
             </Button>
-            <Button type="submit" disabled={sauvegarde.isPending}>
+            <Button type="submit" loading={sauvegarde.isPending}>
               {sauvegarde.isPending ? 'Enregistrement…' : 'Enregistrer'}
             </Button>
           </div>
@@ -967,13 +1280,13 @@ function OngletGroupes() {
           }}
           className="space-y-4"
         >
-          <p className="text-sm text-neutral-600">
+          <p className="text-sm text-ink-body">
             Des sous-groupes (G1), (G2)… seront créés et l’effectif sera réparti
             équitablement.
           </p>
           <div>
             <Label htmlFor="nombreSousGroupes">Nombre de sous-groupes</Label>
-            <Input
+            <Champ
               id="nombreSousGroupes"
               type="number"
               min="2"
@@ -989,10 +1302,13 @@ function OngletGroupes() {
           )}
 
           <div className="flex justify-end gap-3 pt-2">
-            <Button variante="secondary" onClick={() => setDialogDedoubler(null)}>
+            <Button
+              variant="secondary"
+              onClick={() => setDialogDedoubler(null)}
+            >
               Annuler
             </Button>
-            <Button type="submit" disabled={dedoublement.isPending}>
+            <Button type="submit" loading={dedoublement.isPending}>
               {dedoublement.isPending ? 'Création…' : 'Dédoubler'}
             </Button>
           </div>
@@ -1106,59 +1422,84 @@ function OngletMatieres() {
   const liste = matieres ?? [];
 
   return (
-    <Card
-      titre="Matières"
-      actions={
-        <Button taille="sm" onClick={ouvrirCreation}>Nouvelle matière</Button>
-      }
-    >
+    <Card padded={false} style={{ overflow: 'hidden' }}>
+      <EnteteCarte
+        titre="Matières"
+        actions={
+          <Button variant="primary" size="sm" onClick={ouvrirCreation}>
+            Nouvelle matière
+          </Button>
+        }
+      />
+
       {suppression.error !== null && (
-        <div className="mb-4">
-          <MessageErreur message={suppression.error.message} />
-        </div>
+        <BandeauErreur message={suppression.error.message} />
       )}
+
       {liste.length === 0 ? (
-        <EmptyState message="Aucune matière pour le moment." />
+        <EmptyState
+          title="Aucune matière"
+          description="Déclarez les matières enseignées : coefficient, poids cognitif, durées et contraintes de placement."
+          action={
+            <Button variant="primary" size="sm" onClick={ouvrirCreation}>
+              Nouvelle matière
+            </Button>
+          }
+        />
       ) : (
-        <Table>
-          <THead>
-            <Tr>
-              <Th>Matière</Th>
-              <Th>Code</Th>
-              <Th>Coef.</Th>
-              <Th>Poids cognitif</Th>
-              <Th>Salle requise</Th>
-              <Th>Équipements</Th>
-              <Th>Durées</Th>
-              <Th>Contraintes</Th>
-              <Th className="text-right">Actions</Th>
-            </Tr>
-          </THead>
-          <TBody>
+        <table style={TABLEAU}>
+          <thead>
+            <tr>
+              <th style={TH}>Matière</th>
+              <th style={TH}>Code</th>
+              <th style={TH_DROITE}>Coef.</th>
+              <th style={TH_DROITE}>Poids cognitif</th>
+              <th style={TH}>Salle requise</th>
+              <th style={TH}>Équipements</th>
+              <th style={TH}>Durées</th>
+              <th style={TH}>Contraintes</th>
+              <th style={TH_DROITE}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
             {liste.map((matiere) => (
-              <Tr key={matiere.id}>
-                <Td className="font-medium text-neutral-900">
-                  <span className="flex items-center gap-2">
+              <tr key={matiere.id}>
+                <td style={TD}>
+                  <span
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      fontWeight: 'var(--weight-medium)',
+                      color: 'var(--text-strong)',
+                    }}
+                  >
                     <span
-                      className="inline-block h-4 w-4 shrink-0 rounded"
-                      style={{ backgroundColor: matiere.couleur }}
                       aria-hidden="true"
+                      style={{
+                        display: 'inline-block',
+                        width: '10px',
+                        height: '10px',
+                        flex: 'none',
+                        borderRadius: '3px',
+                        background: matiere.couleur,
+                      }}
                     />
                     {matiere.libelle}
                   </span>
-                </Td>
-                <Td>{matiere.code}</Td>
-                <Td>{matiere.coefficient}</Td>
-                <Td>{matiere.poidsCognitif}</Td>
-                <Td>{matiere.typeSalleRequis ?? '—'}</Td>
-                <Td>
+                </td>
+                <td style={TD_MONO}>{matiere.code}</td>
+                <td style={TD_DROITE}>{matiere.coefficient}</td>
+                <td style={TD_DROITE}>{matiere.poidsCognitif}</td>
+                <td style={TD}>{matiere.typeSalleRequis ?? '—'}</td>
+                <td style={TD}>
                   <Pastilles elements={matiere.equipementsRequis ?? []} />
-                </Td>
-                <Td className="whitespace-nowrap">
+                </td>
+                <td style={TD}>
                   {formatUnites(matiere.dureeMinUnites)} –{' '}
                   {formatUnites(matiere.dureeMaxUnites)}
-                </Td>
-                <Td>
+                </td>
+                <td style={TD}>
                   <Pastilles
                     elements={[
                       ...(matiere.eviterAvantDejeuner
@@ -1169,19 +1510,19 @@ function OngletMatieres() {
                         : []),
                     ]}
                   />
-                </Td>
-                <Td className="text-right">
-                  <div className="flex justify-end gap-2">
+                </td>
+                <td style={TD_DROITE}>
+                  <ActionsLigne>
                     <Button
-                      variante="secondary"
-                      taille="sm"
+                      variant="secondary"
+                      size="sm"
                       onClick={() => ouvrirEdition(matiere)}
                     >
                       Modifier
                     </Button>
                     <Button
-                      variante="danger"
-                      taille="sm"
+                      variant="ghost"
+                      size="sm"
                       disabled={suppression.isPending}
                       onClick={() => {
                         if (
@@ -1195,12 +1536,12 @@ function OngletMatieres() {
                     >
                       Supprimer
                     </Button>
-                  </div>
-                </Td>
-              </Tr>
+                  </ActionsLigne>
+                </td>
+              </tr>
             ))}
-          </TBody>
-        </Table>
+          </tbody>
+        </table>
       )}
 
       <Dialog
@@ -1218,7 +1559,7 @@ function OngletMatieres() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="libelleMatiere">Libellé</Label>
-              <Input
+              <Champ
                 id="libelleMatiere"
                 value={formulaire.libelle}
                 onChange={(e) =>
@@ -1230,7 +1571,7 @@ function OngletMatieres() {
             </div>
             <div>
               <Label htmlFor="codeMatiere">Code</Label>
-              <Input
+              <Champ
                 id="codeMatiere"
                 value={formulaire.code}
                 onChange={(e) =>
@@ -1244,7 +1585,7 @@ function OngletMatieres() {
           <div className="grid grid-cols-3 gap-4">
             <div>
               <Label htmlFor="coefficientMatiere">Coefficient</Label>
-              <Input
+              <Champ
                 id="coefficientMatiere"
                 type="number"
                 min="0"
@@ -1258,7 +1599,7 @@ function OngletMatieres() {
             </div>
             <div>
               <Label htmlFor="poidsMatiere">Poids cognitif</Label>
-              <Input
+              <Champ
                 id="poidsMatiere"
                 type="number"
                 min="1"
@@ -1275,6 +1616,7 @@ function OngletMatieres() {
             </div>
             <div>
               <Label htmlFor="couleurMatiere">Couleur</Label>
+              {/* La couleur d’une matière est une donnée, pas un token. */}
               <input
                 id="couleurMatiere"
                 type="color"
@@ -1282,14 +1624,14 @@ function OngletMatieres() {
                 onChange={(e) =>
                   setFormulaire({ ...formulaire, couleur: e.target.value })
                 }
-                className="h-9 w-full cursor-pointer rounded-lg border border-neutral-300 bg-white p-1"
+                className="h-[var(--control-height-md)] w-full cursor-pointer rounded-sm border border-line-default bg-surface-card p-1"
               />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="typeSalleMatiere">Type de salle requis</Label>
-              <Input
+              <Champ
                 id="typeSalleMatiere"
                 value={formulaire.typeSalleRequis}
                 onChange={(e) =>
@@ -1305,7 +1647,7 @@ function OngletMatieres() {
               <Label htmlFor="equipementsMatiere">
                 Équipements requis (séparés par des virgules)
               </Label>
-              <Input
+              <Champ
                 id="equipementsMatiere"
                 value={formulaire.equipementsRequis}
                 onChange={(e) =>
@@ -1321,7 +1663,7 @@ function OngletMatieres() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="dureeMinMatiere">Durée min (unités)</Label>
-              <Input
+              <Champ
                 id="dureeMinMatiere"
                 type="number"
                 min="1"
@@ -1334,13 +1676,13 @@ function OngletMatieres() {
                 }
                 required
               />
-              <p className="mt-1 text-xs text-neutral-500">
+              <p className="mt-1 text-xs text-ink-muted">
                 {formatUnites(Number(formulaire.dureeMinUnites) || 0)}
               </p>
             </div>
             <div>
               <Label htmlFor="dureeMaxMatiere">Durée max (unités)</Label>
-              <Input
+              <Champ
                 id="dureeMaxMatiere"
                 type="number"
                 min="1"
@@ -1353,13 +1695,13 @@ function OngletMatieres() {
                 }
                 required
               />
-              <p className="mt-1 text-xs text-neutral-500">
+              <p className="mt-1 text-xs text-ink-muted">
                 {formatUnites(Number(formulaire.dureeMaxUnites) || 0)}
               </p>
             </div>
           </div>
           <div className="flex flex-wrap gap-6">
-            <label className="flex items-center gap-2 text-sm text-neutral-700">
+            <label className="flex items-center gap-2 text-sm text-ink-body">
               <input
                 type="checkbox"
                 checked={formulaire.eviterAvantDejeuner}
@@ -1369,11 +1711,12 @@ function OngletMatieres() {
                     eviterAvantDejeuner: e.target.checked,
                   })
                 }
-                className="h-4 w-4 rounded border-neutral-300 text-teal-600 focus:ring-teal-500"
+                className="h-4 w-4 rounded-xs border-line-default"
+                style={{ accentColor: 'var(--color-primary)' }}
               />
               Éviter avant le déjeuner
             </label>
-            <label className="flex items-center gap-2 text-sm text-neutral-700">
+            <label className="flex items-center gap-2 text-sm text-ink-body">
               <input
                 type="checkbox"
                 checked={formulaire.eviterFinJournee}
@@ -1383,7 +1726,8 @@ function OngletMatieres() {
                     eviterFinJournee: e.target.checked,
                   })
                 }
-                className="h-4 w-4 rounded border-neutral-300 text-teal-600 focus:ring-teal-500"
+                className="h-4 w-4 rounded-xs border-line-default"
+                style={{ accentColor: 'var(--color-primary)' }}
               />
               Éviter en fin de journée
             </label>
@@ -1394,10 +1738,10 @@ function OngletMatieres() {
           )}
 
           <div className="flex justify-end gap-3 pt-2">
-            <Button variante="secondary" onClick={() => setDialogOuvert(false)}>
+            <Button variant="secondary" onClick={() => setDialogOuvert(false)}>
               Annuler
             </Button>
-            <Button type="submit" disabled={sauvegarde.isPending}>
+            <Button type="submit" loading={sauvegarde.isPending}>
               {sauvegarde.isPending ? 'Enregistrement…' : 'Enregistrer'}
             </Button>
           </div>
@@ -1493,51 +1837,64 @@ function OngletSalles() {
   const liste = salles ?? [];
 
   return (
-    <Card
-      titre="Salles"
-      actions={<Button taille="sm" onClick={ouvrirCreation}>Nouvelle salle</Button>}
-    >
+    <Card padded={false} style={{ overflow: 'hidden' }}>
+      <EnteteCarte
+        titre="Salles"
+        actions={
+          <Button variant="primary" size="sm" onClick={ouvrirCreation}>
+            Nouvelle salle
+          </Button>
+        }
+      />
+
       {suppression.error !== null && (
-        <div className="mb-4">
-          <MessageErreur message={suppression.error.message} />
-        </div>
+        <BandeauErreur message={suppression.error.message} />
       )}
+
       {liste.length === 0 ? (
-        <EmptyState message="Aucune salle pour le moment." />
+        <EmptyState
+          title="Aucune salle"
+          description="Déclarez vos salles, leur capacité, leur type et leurs équipements pour que le moteur puisse les affecter."
+          action={
+            <Button variant="primary" size="sm" onClick={ouvrirCreation}>
+              Nouvelle salle
+            </Button>
+          }
+        />
       ) : (
-        <Table>
-          <THead>
-            <Tr>
-              <Th>Nom</Th>
-              <Th>Capacité</Th>
-              <Th>Type</Th>
-              <Th>Équipements</Th>
-              <Th>Bâtiment</Th>
-              <Th className="text-right">Actions</Th>
-            </Tr>
-          </THead>
-          <TBody>
+        <table style={TABLEAU}>
+          <thead>
+            <tr>
+              <th style={TH}>Nom</th>
+              <th style={TH_DROITE}>Capacité</th>
+              <th style={TH}>Type</th>
+              <th style={TH}>Équipements</th>
+              <th style={TH}>Bâtiment</th>
+              <th style={TH_DROITE}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
             {liste.map((salle) => (
-              <Tr key={salle.id}>
-                <Td className="font-medium text-neutral-900">{salle.nom}</Td>
-                <Td>{salle.capacite}</Td>
-                <Td>{salle.type}</Td>
-                <Td>
+              <tr key={salle.id}>
+                <td style={TD_FORT}>{salle.nom}</td>
+                <td style={TD_DROITE}>{salle.capacite}</td>
+                <td style={TD}>{salle.type}</td>
+                <td style={TD}>
                   <Pastilles elements={salle.equipements ?? []} />
-                </Td>
-                <Td>{salle.batiment ?? '—'}</Td>
-                <Td className="text-right">
-                  <div className="flex justify-end gap-2">
+                </td>
+                <td style={TD}>{salle.batiment ?? '—'}</td>
+                <td style={TD_DROITE}>
+                  <ActionsLigne>
                     <Button
-                      variante="secondary"
-                      taille="sm"
+                      variant="secondary"
+                      size="sm"
                       onClick={() => ouvrirEdition(salle)}
                     >
                       Modifier
                     </Button>
                     <Button
-                      variante="danger"
-                      taille="sm"
+                      variant="ghost"
+                      size="sm"
                       disabled={suppression.isPending}
                       onClick={() => {
                         if (
@@ -1551,12 +1908,12 @@ function OngletSalles() {
                     >
                       Supprimer
                     </Button>
-                  </div>
-                </Td>
-              </Tr>
+                  </ActionsLigne>
+                </td>
+              </tr>
             ))}
-          </TBody>
-        </Table>
+          </tbody>
+        </table>
       )}
 
       <Dialog
@@ -1574,7 +1931,7 @@ function OngletSalles() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="nomSalle">Nom</Label>
-              <Input
+              <Champ
                 id="nomSalle"
                 value={formulaire.nom}
                 onChange={(e) =>
@@ -1586,7 +1943,7 @@ function OngletSalles() {
             </div>
             <div>
               <Label htmlFor="capaciteSalle">Capacité</Label>
-              <Input
+              <Champ
                 id="capaciteSalle"
                 type="number"
                 min="1"
@@ -1601,7 +1958,7 @@ function OngletSalles() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="typeSalle">Type</Label>
-              <Input
+              <Champ
                 id="typeSalle"
                 value={formulaire.type}
                 onChange={(e) =>
@@ -1613,7 +1970,7 @@ function OngletSalles() {
             </div>
             <div>
               <Label htmlFor="batimentSalle">Bâtiment</Label>
-              <Input
+              <Champ
                 id="batimentSalle"
                 value={formulaire.batiment}
                 onChange={(e) =>
@@ -1627,7 +1984,7 @@ function OngletSalles() {
             <Label htmlFor="equipementsSalle">
               Équipements (séparés par des virgules)
             </Label>
-            <Input
+            <Champ
               id="equipementsSalle"
               value={formulaire.equipements}
               onChange={(e) =>
@@ -1642,10 +1999,10 @@ function OngletSalles() {
           )}
 
           <div className="flex justify-end gap-3 pt-2">
-            <Button variante="secondary" onClick={() => setDialogOuvert(false)}>
+            <Button variant="secondary" onClick={() => setDialogOuvert(false)}>
               Annuler
             </Button>
-            <Button type="submit" disabled={sauvegarde.isPending}>
+            <Button type="submit" loading={sauvegarde.isPending}>
               {sauvegarde.isPending ? 'Enregistrement…' : 'Enregistrer'}
             </Button>
           </div>
@@ -1727,85 +2084,92 @@ function OngletBarrettes() {
     onSuccess: invalider,
   });
 
+  function ouvrirCreation() {
+    creation.reset();
+    suppression.reset();
+    setLibelle('');
+    setMatiereId('');
+    setGroupeIds([]);
+    setDialogOuvert(true);
+  }
+
   if (isLoading) return <ChargementPage />;
   if (error !== null) return <MessageErreur message={error.message} />;
 
   const liste = barrettes ?? [];
 
   return (
-    <Card
-      titre="Barrettes (cours alignés)"
-      actions={
-        <Button
-          taille="sm"
-          onClick={() => {
-            creation.reset();
-            suppression.reset();
-            setLibelle('');
-            setMatiereId('');
-            setGroupeIds([]);
-            setDialogOuvert(true);
-          }}
-        >
-          Nouvelle barrette
-        </Button>
-      }
-    >
-      <p className="mb-4 text-sm text-neutral-500">
-        Une barrette aligne une matière sur le même créneau pour plusieurs
-        groupes (ex. langues vivantes).
-      </p>
+    <Card padded={false} style={{ overflow: 'hidden' }}>
+      <EnteteCarte
+        titre="Barrettes (cours alignés)"
+        sousTitre="Une barrette aligne une matière sur le même créneau pour plusieurs groupes (ex. langues vivantes)."
+        actions={
+          <Button variant="primary" size="sm" onClick={ouvrirCreation}>
+            Nouvelle barrette
+          </Button>
+        }
+      />
+
       {suppression.error !== null && (
-        <div className="mb-4">
-          <MessageErreur message={suppression.error.message} />
-        </div>
+        <BandeauErreur message={suppression.error.message} />
       )}
+
       {liste.length === 0 ? (
-        <EmptyState message="Aucune barrette pour le moment." />
+        <EmptyState
+          title="Aucune barrette"
+          description="Créez une barrette pour aligner une matière sur le même créneau dans plusieurs groupes."
+          action={
+            <Button variant="primary" size="sm" onClick={ouvrirCreation}>
+              Nouvelle barrette
+            </Button>
+          }
+        />
       ) : (
-        <Table>
-          <THead>
-            <Tr>
-              <Th>Libellé</Th>
-              <Th>Matière</Th>
-              <Th>Groupes</Th>
-              <Th className="text-right">Actions</Th>
-            </Tr>
-          </THead>
-          <TBody>
+        <table style={TABLEAU}>
+          <thead>
+            <tr>
+              <th style={TH}>Libellé</th>
+              <th style={TH}>Matière</th>
+              <th style={TH}>Groupes</th>
+              <th style={TH_DROITE}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
             {liste.map((barrette) => (
-              <Tr key={barrette.id}>
-                <Td className="font-medium text-neutral-900">{barrette.libelle}</Td>
-                <Td>{barrette.matiereLibelle}</Td>
-                <Td>
+              <tr key={barrette.id}>
+                <td style={TD_FORT}>{barrette.libelle}</td>
+                <td style={TD}>{barrette.matiereLibelle}</td>
+                <td style={TD}>
                   <Pastilles
                     elements={barrette.groupeIds.map(
                       (id) => libellesGroupes.get(id) ?? `Groupe ${id}`,
                     )}
                   />
-                </Td>
-                <Td className="text-right">
-                  <Button
-                    variante="danger"
-                    taille="sm"
-                    disabled={suppression.isPending}
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          `Supprimer la barrette « ${barrette.libelle} » ?`,
-                        )
-                      ) {
-                        suppression.mutate(barrette.id);
-                      }
-                    }}
-                  >
-                    Supprimer
-                  </Button>
-                </Td>
-              </Tr>
+                </td>
+                <td style={TD_DROITE}>
+                  <ActionsLigne>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={suppression.isPending}
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `Supprimer la barrette « ${barrette.libelle} » ?`,
+                          )
+                        ) {
+                          suppression.mutate(barrette.id);
+                        }
+                      }}
+                    >
+                      Supprimer
+                    </Button>
+                  </ActionsLigne>
+                </td>
+              </tr>
             ))}
-          </TBody>
-        </Table>
+          </tbody>
+        </table>
       )}
 
       <Dialog
@@ -1822,7 +2186,7 @@ function OngletBarrettes() {
         >
           <div>
             <Label htmlFor="libelleBarrette">Libellé</Label>
-            <Input
+            <Champ
               id="libelleBarrette"
               value={libelle}
               onChange={(e) => setLibelle(e.target.value)}
@@ -1832,7 +2196,7 @@ function OngletBarrettes() {
           </div>
           <div>
             <Label htmlFor="matiereBarrette">Matière</Label>
-            <Select
+            <Selecteur
               id="matiereBarrette"
               value={matiereId}
               onChange={(e) => setMatiereId(e.target.value)}
@@ -1844,20 +2208,18 @@ function OngletBarrettes() {
                   {matiere.libelle}
                 </option>
               ))}
-            </Select>
+            </Selecteur>
           </div>
           <div>
             <Label>Groupes concernés</Label>
-            <div className="mt-1 max-h-52 space-y-1 overflow-y-auto rounded-lg border border-neutral-200 p-3">
+            <div className="max-h-52 space-y-1 overflow-y-auto rounded-sm border border-line-subtle p-3">
               {groupesAplatis.length === 0 && (
-                <p className="text-sm text-neutral-500">
-                  Aucun groupe disponible.
-                </p>
+                <p className="text-sm text-ink-muted">Aucun groupe disponible.</p>
               )}
               {groupesAplatis.map((groupe) => (
                 <label
                   key={groupe.id}
-                  className="flex items-center gap-2 text-sm text-neutral-700"
+                  className="flex items-center gap-2 text-sm text-ink-body"
                 >
                   <input
                     type="checkbox"
@@ -1869,7 +2231,8 @@ function OngletBarrettes() {
                           : groupeIds.filter((id) => id !== groupe.id),
                       )
                     }
-                    className="h-4 w-4 rounded border-neutral-300 text-teal-600 focus:ring-teal-500"
+                    className="h-4 w-4 rounded-xs border-line-default"
+                    style={{ accentColor: 'var(--color-primary)' }}
                   />
                   {groupe.libelle}
                 </label>
@@ -1882,12 +2245,13 @@ function OngletBarrettes() {
           )}
 
           <div className="flex justify-end gap-3 pt-2">
-            <Button variante="secondary" onClick={() => setDialogOuvert(false)}>
+            <Button variant="secondary" onClick={() => setDialogOuvert(false)}>
               Annuler
             </Button>
             <Button
               type="submit"
-              disabled={creation.isPending || groupeIds.length < 2}
+              loading={creation.isPending}
+              disabled={groupeIds.length < 2}
             >
               {creation.isPending ? 'Création…' : 'Créer'}
             </Button>

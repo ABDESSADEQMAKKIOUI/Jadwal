@@ -168,3 +168,26 @@
 
 /* Le fond et la police du document viennent de tokens/base.css
    (--surface-app, --font-sans) : rien à redéfinir ici. */
+
+/* ============================================================
+   Règles globales de la maquette « JADWAL Ynexis »
+   (bloc <style> du document de design, repris tel quel).
+   ============================================================ */
+::placeholder {
+  color: var(--text-subtle);
+}
+
+a:hover {
+  color: var(--teal-700);
+}
+
+/* Curseurs de pondération et cases à cocher au teal de marque. */
+input[type='range'] {
+  accent-color: var(--color-primary);
+}
+
+input[type='checkbox'] {
+  accent-color: var(--color-primary);
+  width: 16px;
+  height: 16px;
+}
