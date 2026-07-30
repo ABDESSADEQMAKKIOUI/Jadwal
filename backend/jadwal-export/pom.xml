@@ -13,13 +13,24 @@
 
     <artifactId>jadwal-export</artifactId>
     <name>JADWAL - Export</name>
-    <description>Génération des exports (PDF des emplois du temps). Module pur : ni JPA ni Spring.</description>
+    <description>Génération des exports (PDF des emplois du temps, tableurs CSV et XLSX). Module pur : ni JPA ni Spring.</description>
+
+    <properties>
+        <poi.version>5.5.1</poi.version>
+    </properties>
 
     <dependencies>
         <dependency>
             <groupId>com.github.librepdf</groupId>
             <artifactId>openpdf</artifactId>
             <version>2.0.3</version>
+        </dependency>
+
+        <!-- Classeurs OOXML (.xlsx) : écriture et relecture dans les tests. -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>${poi.version}</version>
         </dependency>
 
         <dependency>

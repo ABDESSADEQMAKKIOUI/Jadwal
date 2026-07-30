@@ -152,9 +152,14 @@ public class AmorcageDemo {
     // Abonnement
     // ------------------------------------------------------------------
 
+    /**
+     * PREMIUM, et non ESSENTIEL : c'est le seul plan qui inclut le module
+     * VIE_SCOLAIRE. Le jeu de démonstration doit permettre d'explorer les élèves
+     * et les absences, sinon ces écrans répondent 403.
+     */
     private void creerAbonnementActif(Long etablissementId, Long directeurId) {
         PlanAbonnement plan = planService.listerTout().stream()
-                .filter(p -> "ESSENTIEL".equals(p.getCode()))
+                .filter(p -> "PREMIUM".equals(p.getCode()))
                 .findFirst()
                 .orElse(null);
         if (plan == null) {

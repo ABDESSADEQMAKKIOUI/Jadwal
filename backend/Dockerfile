@@ -10,6 +10,7 @@ COPY jadwal-abonnement/pom.xml jadwal-abonnement/pom.xml
 COPY jadwal-enseignant/pom.xml jadwal-enseignant/pom.xml
 COPY jadwal-pedagogie/pom.xml jadwal-pedagogie/pom.xml
 COPY jadwal-planning/pom.xml jadwal-planning/pom.xml
+COPY jadwal-scolarite/pom.xml jadwal-scolarite/pom.xml
 COPY jadwal-solver/pom.xml jadwal-solver/pom.xml
 COPY jadwal-export/pom.xml jadwal-export/pom.xml
 COPY jadwal-api/pom.xml jadwal-api/pom.xml
@@ -22,6 +23,7 @@ COPY jadwal-abonnement/src jadwal-abonnement/src
 COPY jadwal-enseignant/src jadwal-enseignant/src
 COPY jadwal-pedagogie/src jadwal-pedagogie/src
 COPY jadwal-planning/src jadwal-planning/src
+COPY jadwal-scolarite/src jadwal-scolarite/src
 COPY jadwal-solver/src jadwal-solver/src
 COPY jadwal-export/src jadwal-export/src
 COPY jadwal-api/src jadwal-api/src

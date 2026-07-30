@@ -3,6 +3,7 @@ package ma.jadwal.api.erreur;
 import ma.jadwal.api.securite.IdentifiantsInvalidesException;
 import ma.jadwal.common.ApiError;
 import ma.jadwal.common.exception.ConflitException;
+import ma.jadwal.common.exception.ModuleNonSouscritException;
 import ma.jadwal.common.exception.OperationNonAutoriseeException;
 import ma.jadwal.common.exception.RessourceIntrouvableException;
 import org.slf4j.Logger;
@@ -14,6 +15,8 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.LinkedHashMap;
@@ -40,6 +43,12 @@ public class GestionnaireExceptions {
     public ResponseEntity<ApiError> gererNonAutorisee(OperationNonAutoriseeException exception) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(new ApiError(403, exception.getMessage()));
+    }
+
+    @ExceptionHandler(ModuleNonSouscritException.class)
+    public ResponseEntity<ApiError> gererModuleNonSouscrit(ModuleNonSouscritException exception) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ApiError(403, exception.getMessage(), Map.of("module", exception.getModule())));
     }
 
     @ExceptionHandler(IdentifiantsInvalidesException.class)
@@ -85,6 +94,23 @@ public class GestionnaireExceptions {
     public ResponseEntity<ApiError> gererCorpsIllisible(HttpMessageNotReadableException exception) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ApiError(400, "Corps de requête invalide"));
+    }
+
+    /**
+     * Fichier téléversé plus gros que la limite du conteneur : la requête est
+     * coupée avant d'atteindre le contrôleur, on rend un message explicite
+     * plutôt qu'une erreur interne.
+     */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiError> gererFichierTropVolumineux(MaxUploadSizeExceededException exception) {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                .body(new ApiError(413, "Le fichier dépasse la taille maximale autorisée (5 Mo)."));
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ApiError> gererPartieManquante(MissingServletRequestPartException exception) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ApiError(400, "Fichier manquant : envoyez le champ « fichier » en multipart/form-data."));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

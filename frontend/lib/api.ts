@@ -30,6 +30,33 @@ export async function apiFetch<T = unknown>(
     throw new Error('Impossible de contacter le serveur.');
   }
 
+  return lireReponse<T>(reponse);
+}
+
+/**
+ * Téléversement de fichier (import Massar) : on ne pose PAS de `Content-Type`,
+ * c'est le navigateur qui l'écrit avec la frontière du corps multipart. Le
+ * proxy BFF relaie cet en-tête et les octets tels quels.
+ */
+export async function apiFetchMultipart<T = unknown>(
+  chemin: string,
+  formulaire: FormData,
+): Promise<T> {
+  let reponse: Response;
+  try {
+    reponse = await fetch(`/api/backend${chemin}`, {
+      method: 'POST',
+      body: formulaire,
+    });
+  } catch {
+    throw new Error('Impossible de contacter le serveur.');
+  }
+
+  return lireReponse<T>(reponse);
+}
+
+/** Lecture commune : 401 = session expirée, erreur = message du backend. */
+async function lireReponse<T>(reponse: Response): Promise<T> {
   if (reponse.status === 401) {
     window.location.href = '/login';
     throw new Error('Session expirée. Redirection vers la page de connexion…');

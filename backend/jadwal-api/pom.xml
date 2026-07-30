@@ -42,6 +42,10 @@
         </dependency>
         <dependency>
             <groupId>ma.jadwal</groupId>
+            <artifactId>jadwal-scolarite</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ma.jadwal</groupId>
             <artifactId>jadwal-solver</artifactId>
         </dependency>
         <dependency>

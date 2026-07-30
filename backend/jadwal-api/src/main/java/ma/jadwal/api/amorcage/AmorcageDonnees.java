@@ -1,5 +1,6 @@
 package ma.jadwal.api.amorcage;
 
+import ma.jadwal.abonnement.entite.ModuleJadwal;
 import ma.jadwal.abonnement.service.PlanService;
 import ma.jadwal.referentiel.service.UtilisateurService;
 import org.slf4j.Logger;
@@ -74,9 +75,11 @@ public class AmorcageDonnees implements ApplicationRunner {
             journal.info("Compte super-admin créé : {}", EMAIL_ADMIN);
         }
         if (planService.compter() == 0) {
-            planService.creer("ESSENTIEL", "Essentiel", new BigDecimal("9900.00"), "Jusqu'à 20 classes");
+            planService.creer("ESSENTIEL", "Essentiel", new BigDecimal("9900.00"), "Jusqu'à 20 classes",
+                    Set.of(ModuleJadwal.PLANNING));
             planService.creer("PREMIUM", "Premium", new BigDecimal("14900.00"),
-                    "Classes illimitées + support prioritaire");
+                    "Classes illimitées + vie scolaire + support prioritaire",
+                    Set.of(ModuleJadwal.PLANNING, ModuleJadwal.VIE_SCOLAIRE));
             journal.info("Plans d'abonnement par défaut créés (ESSENTIEL, PREMIUM)");
         }
         if (demo) {

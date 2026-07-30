@@ -23,6 +23,8 @@ export default async function EcoleLayout({
         { href: '/ecole/generation', libelle: 'Génération' },
         { href: '/ecole/referentiel', libelle: 'Référentiel' },
         { href: '/ecole/enseignants', libelle: 'Enseignants' },
+        { href: '/ecole/absences', libelle: 'Absences' },
+        { href: '/ecole/eleves', libelle: 'Élèves' },
         { href: '/ecole/maquettes', libelle: 'Maquettes' },
         { href: '/ecole/ponderations', libelle: 'Pondérations' },
       ]}

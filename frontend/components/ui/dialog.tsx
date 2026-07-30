@@ -2,14 +2,26 @@
 
 import type { ReactNode } from 'react';
 
+/**
+ * Largeurs disponibles. `md` est la valeur historique (32 rem) ; `lg` et `xl`
+ * servent aux dialogues qui contiennent un tableau (prévisualisation d'import).
+ */
+const LARGEURS = {
+  md: 'max-w-lg',
+  lg: 'max-w-3xl',
+  xl: 'max-w-5xl',
+} as const;
+
 export function Dialog({
   ouvert,
   titre,
+  taille = 'md',
   onFermer,
   children,
 }: {
   ouvert: boolean;
   titre: string;
+  taille?: keyof typeof LARGEURS;
   onFermer: () => void;
   children: ReactNode;
 }) {
@@ -30,7 +42,7 @@ export function Dialog({
         role="dialog"
         aria-modal="true"
         aria-label={titre}
-        className="relative w-full max-w-lg rounded-lg border border-line-subtle bg-surface-card p-6 shadow-[var(--shadow-lg)]"
+        className={`relative max-h-[92vh] w-full overflow-y-auto rounded-lg border border-line-subtle bg-surface-card p-6 shadow-[var(--shadow-lg)] ${LARGEURS[taille]}`}
       >
         <div className="mb-5 flex items-start justify-between gap-4">
           <h2 className="text-lg font-semibold text-ink-strong">{titre}</h2>

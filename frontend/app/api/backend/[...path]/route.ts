@@ -16,16 +16,35 @@ async function proxifier(
 
   const url = `${BACKEND_URL}/api/${path.join('/')}${request.nextUrl.search}`;
 
-  const entetes: Record<string, string> = { 'Content-Type': 'application/json' };
+  /*
+   * Un corps qui n'est pas du JSON (import Massar en multipart/form-data) doit
+   * être relayé octet pour octet, en conservant son Content-Type : celui-ci
+   * porte la frontière des parties, et la réécrire en JSON rendrait le corps
+   * illisible pour le backend.
+   */
+  const typeEntrant = request.headers.get('content-type');
+  const typeBinaire =
+    typeEntrant !== null && !typeEntrant.includes('application/json') ? typeEntrant : null;
+
+  const entetes: Record<string, string> = {
+    'Content-Type': typeBinaire ?? 'application/json',
+  };
   if (token) {
     entetes.Authorization = `Bearer ${token}`;
   }
 
   const init: RequestInit = { method: methode, headers: entetes, cache: 'no-store' };
   if (methode === 'POST' || methode === 'PUT' || methode === 'PATCH') {
-    const corps = await request.text();
-    if (corps.length > 0) {
-      init.body = corps;
+    if (typeBinaire !== null) {
+      const corps = await request.arrayBuffer();
+      if (corps.byteLength > 0) {
+        init.body = corps;
+      }
+    } else {
+      const corps = await request.text();
+      if (corps.length > 0) {
+        init.body = corps;
+      }
     }
   }
 

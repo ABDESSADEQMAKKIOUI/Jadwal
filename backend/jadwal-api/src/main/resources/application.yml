@@ -9,12 +9,26 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+  servlet:
+    multipart:
+      # Import Massar : la même limite de 5 Mo est revérifiée dans ImportMassarService.
+      max-file-size: 5MB
+      max-request-size: 6MB
+      # Seuil de bascule sur disque aligné sur la taille maximale : le fichier
+      # d'élèves (données personnelles de mineurs) reste en mémoire et n'est
+      # jamais déposé dans le répertoire temporaire du conteneur.
+      file-size-threshold: 5MB
   flyway:
     enabled: true
     locations: classpath:db/migration
 
 server:
   port: 8080
+  tomcat:
+    # Un téléversement refusé (fichier trop gros) doit recevoir une réponse JSON
+    # propre : Tomcat doit donc consommer la fin du corps au lieu de couper la
+    # connexion. Plafonné pour ne pas en faire un levier de saturation.
+    max-swallow-size: 8MB
 
 management:
   endpoints:

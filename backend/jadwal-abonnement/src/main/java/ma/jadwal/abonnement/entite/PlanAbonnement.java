@@ -29,6 +29,13 @@ public class PlanAbonnement {
     @Column(columnDefinition = "text")
     private String description;
 
+    /**
+     * Modules inclus dans le plan, codes {@link ModuleJadwal} séparés par des
+     * virgules (par exemple {@code PLANNING,VIE_SCOLAIRE}).
+     */
+    @Column(nullable = false, length = 200)
+    private String modules = ModuleJadwal.PLANNING.name();
+
     @Column(nullable = false)
     private boolean actif = true;
 
@@ -70,6 +77,14 @@ public class PlanAbonnement {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getModules() {
+        return modules;
+    }
+
+    public void setModules(String modules) {
+        this.modules = modules;
     }
 
     public boolean isActif() {

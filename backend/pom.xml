@@ -31,6 +31,7 @@
         <module>jadwal-enseignant</module>
         <module>jadwal-pedagogie</module>
         <module>jadwal-planning</module>
+        <module>jadwal-scolarite</module>
         <module>jadwal-solver</module>
         <module>jadwal-export</module>
         <module>jadwal-api</module>
@@ -66,6 +67,11 @@
             <dependency>
                 <groupId>ma.jadwal</groupId>
                 <artifactId>jadwal-planning</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ma.jadwal</groupId>
+                <artifactId>jadwal-scolarite</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

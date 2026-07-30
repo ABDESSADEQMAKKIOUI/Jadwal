@@ -13,11 +13,13 @@ export type CleIcone =
   | 'generation'
   | 'referentiel'
   | 'enseignants'
+  | 'eleves'
   | 'maquettes'
   | 'ponderations'
   | 'etablissements'
   | 'plans'
   | 'paiements'
+  | 'absences'
   | 'defaut';
 
 export interface ElementNavigation {
@@ -79,6 +81,22 @@ const ICONES: Record<CleIcone, ReactNode> = {
       <circle cx="9" cy="7" r="4" />
       <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
       <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  ),
+  /* Élèves : toque de diplômé, même trait que les icônes de la maquette. */
+  eleves: (
+    <svg {...PROPS_SVG}>
+      <path d="M22 10 12 5 2 10l10 5z" />
+      <path d="M6 12v5c0 1.66 2.69 3 6 3s6-1.34 6-3v-5" />
+      <path d="M22 10v6" />
+    </svg>
+  ),
+  /* Absences : porte-bloc coché, l'objet même de la feuille d'appel. */
+  absences: (
+    <svg {...PROPS_SVG}>
+      <rect x="8" y="2" width="8" height="4" rx="1" />
+      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+      <path d="m9 14 2 2 4-4" />
     </svg>
   ),
   maquettes: (
@@ -145,6 +163,8 @@ const ICONE_PAR_HREF: Record<string, CleIcone> = {
   '/ecole/generation': 'generation',
   '/ecole/referentiel': 'referentiel',
   '/ecole/enseignants': 'enseignants',
+  '/ecole/eleves': 'eleves',
+  '/ecole/absences': 'absences',
   '/ecole/maquettes': 'maquettes',
   '/ecole/ponderations': 'ponderations',
   '/admin': 'tableauDeBord',
